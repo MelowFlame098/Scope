@@ -1,0 +1,120 @@
+# Production Requirements - Production Deployment Dependencies
+# Include base requirements: -r base.txt
+
+-r base.txt
+
+# Production WSGI/ASGI Server
+gunicorn>=21.2.0,<21.3.0
+uvicorn[standard]>=0.24.0  # Already in base
+
+# Production Database Drivers
+psycopg2-binary>=2.9.9  # Already in base
+
+# Production Caching
+redis>=5.0.1  # Already in base
+hiredis>=2.2.0,<2.3.0  # Redis performance boost
+
+# Production Monitoring
+prometheus-client>=0.19.0,<0.20.0
+sentry-sdk[fastapi]>=1.39.0,<1.40.0
+
+# Production Logging
+structlog>=23.2.0  # Already in base
+python-json-logger>=2.0.0,<2.1.0
+
+# Production Security
+cryptography>=41.0.0,<42.0.0
+
+# Production Performance
+orjson>=3.9.0,<3.10.0  # Fast JSON serialization
+uvloop>=0.19.0,<0.20.0  # Fast event loop (Unix only)
+
+# Production HTTP Client
+httpx[http2]>=0.25.2
+
+# Production Background Tasks
+celery[redis]>=5.3.4
+
+# Production File Storage
+boto3>=1.34.0,<1.35.0  # AWS S3 support
+azure-storage-blob>=12.19.0,<12.20.0  # Azure Blob storage
+google-cloud-storage>=2.10.0,<2.11.0  # Google Cloud storage
+
+# Production Email
+sendgrid>=6.11.0,<6.12.0
+ses-mailer>=0.1.0  # AWS SES support
+
+# Production Configuration
+python-dotenv>=1.0.0  # Already in base
+pydantic-settings>=2.1.0  # Already in base
+
+# Production Health Checks
+psutil>=5.9.0,<5.10.0
+
+# Production Rate Limiting
+slowapi>=0.1.9,<0.2.0
+
+# Production CORS
+fastapi-cors>=0.0.6  # Already in base
+
+# Production Compression
+brotli>=1.1.0,<1.2.0
+
+# Production SSL/TLS
+certifi>=2023.11.17
+
+# Production Time Zone Support
+pytz>=2023.3
+
+# Production Data Validation
+pydantic>=2.5.0  # Already in base
+email-validator>=2.1.0  # Already in base
+
+# Production WebSocket
+websockets>=12.0  # Already in base
+
+# Production Database Connection Pooling
+SQLAlchemy>=2.0.23  # Already in base
+psycopg2-pool>=1.1
+
+# Production Memory Management
+memory-profiler>=0.61.0,<0.62.0
+
+# Production Process Management
+supervisor>=4.2.0,<4.3.0
+
+# Production Reverse Proxy Support
+whitenoise>=6.6.0,<6.7.0
+
+# Production API Documentation
+fastapi>=0.104.1  # Already in base
+
+# Production Error Handling
+rich>=13.7.0  # Already in base
+
+# Production Async Support
+aiofiles>=23.2.1,<24.0.0
+aioredis>=2.0.0,<2.1.0
+
+# Production Metrics Collection
+statsd>=4.0.0,<4.1.0
+
+# Production Load Balancing
+haproxy-stats>=2.0.0,<3.0.0
+
+# Production Container Support
+gunicorn>=21.2.0  # Already listed above
+
+# Production Environment Detection
+platform  # Built-in Python module
+os  # Built-in Python module
+
+# Production Graceful Shutdown
+signal  # Built-in Python module
+
+# Production Resource Limits
+resource  # Built-in Python module
+
+# Production Timezone Handling
+datetime  # Built-in Python module
+zoneinfo  # Built-in Python module (Python 3.9+)

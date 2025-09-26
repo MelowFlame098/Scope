@@ -1,0 +1,93 @@
+# DeFi Requirements - Blockchain and Decentralized Finance Features
+# Include base requirements: -r base.txt
+
+-r base.txt
+
+# Blockchain Libraries
+web3>=6.11.0,<6.16.0
+eth-account>=0.9.0,<0.11.0
+eth-utils>=2.2.0,<2.4.0
+eth-typing>=3.5.0,<3.6.0
+
+# Ethereum Development
+brownie-eth>=1.20.0,<1.21.0  # Smart contract development
+py-solc-x>=1.12.0,<1.13.0   # Solidity compiler
+
+# Multi-chain Support
+bitcoin>=1.1.42
+litecoin>=0.1.0
+binance-python>=1.0.16
+
+# DeFi Protocol Integration
+uniswap-python>=0.7.0,<0.8.0
+0x-python>=4.0.0,<5.0.0
+
+# Cryptocurrency Exchange APIs
+ccxt==4.1.64  # Already in base requirements but ensuring version
+
+# Blockchain Data APIs
+moralis>=0.1.30,<0.2.0
+alchemy-sdk>=3.0.0,<4.0.0
+infura>=0.2.0,<0.3.0
+
+# Smart Contract Interaction
+contract>=0.1.0
+web3-multi-provider>=0.1.0
+
+# Decentralized Storage
+ipfshttpclient>=0.8.0,<0.9.0
+
+# Cryptographic Libraries
+cryptography>=41.0.0,<42.0.0  # Enhanced version for DeFi
+ecdsa>=0.18.0,<0.19.0
+pycryptodome>=3.19.0,<3.20.0
+
+# NFT and Token Standards
+erc20>=0.1.0
+erc721>=0.1.0
+
+# Cross-chain Bridge Support
+layerzero-python>=0.1.0  # If available
+polygon-python>=0.1.0    # If available
+
+# DeFi Analytics
+defillama-python>=0.1.0  # If available
+dune-client>=1.0.0,<2.0.0
+
+# Gas Optimization
+gas-tracker>=0.1.0  # Custom or third-party gas tracking
+
+# Yield Farming and Liquidity
+compound-python>=0.1.0  # If available
+aave-python>=0.1.0      # If available
+
+# Decentralized Identity
+did-python>=0.1.0       # If available
+
+# MEV and Arbitrage
+flashbots>=1.0.0,<2.0.0  # If available
+
+# Blockchain Monitoring
+web3-monitor>=0.1.0     # Custom monitoring tools
+
+# Price Oracles
+chainlink-python>=0.1.0 # If available
+
+# Testing for DeFi
+ganache-cli>=6.12.2     # Local blockchain for testing
+brownie>=1.20.0         # Testing framework
+
+# Async Blockchain Operations
+aiohttp>=3.9.0,<3.10.0  # For async HTTP requests to nodes
+websockets>=12.0        # For WebSocket connections to nodes
+
+# Data Processing for DeFi
+pandas>=2.1.4           # Already in base
+numpy>=1.24.3           # Already in base
+
+# Visualization for DeFi Analytics
+plotly>=5.17.0,<5.19.0
+matplotlib>=3.7.0,<3.9.0
+
+# Configuration for DeFi
+python-decouple>=3.8,<3.9  # Environment variable management

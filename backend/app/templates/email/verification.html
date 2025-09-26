@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your {{ app_name }} Account</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 24px;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+        .content {
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 30px;
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .button:hover {
+            background: linear-gradient(135deg, #1d4ed8, #6d28d9);
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+        }
+        .security-note {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">{{ app_name }}</div>
+            <h1 class="title">Verify Your Email Address</h1>
+        </div>
+        
+        <div class="content">
+            <p>Hello {{ user_name }},</p>
+            
+            <p>Welcome to {{ app_name }}! To complete your registration and start using your account, please verify your email address by clicking the button below:</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ verification_url }}" class="button">Verify Email Address</a>
+            </div>
+            
+            <p>If the button above doesn't work, you can also copy and paste the following link into your browser:</p>
+            <p style="word-break: break-all; background-color: #f3f4f6; padding: 10px; border-radius: 4px; font-family: monospace;">{{ verification_url }}</p>
+            
+            <div class="security-note">
+                <strong>Security Note:</strong> This verification link will expire in 24 hours for your security. If you didn't create an account with {{ app_name }}, please ignore this email.
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>If you have any questions or need assistance, please contact our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+            <p>&copy; 2024 {{ app_name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

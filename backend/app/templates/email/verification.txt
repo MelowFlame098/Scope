@@ -1,0 +1,15 @@
+{{ app_name }} - Verify Your Email Address
+
+Hello {{ user_name }},
+
+Welcome to {{ app_name }}! To complete your registration and start using your account, please verify your email address by visiting the following link:
+
+{{ verification_url }}
+
+This verification link will expire in 24 hours for your security.
+
+If you didn't create an account with {{ app_name }}, please ignore this email.
+
+If you have any questions or need assistance, please contact our support team at {{ support_email }}
+
+© 2024 {{ app_name }}. All rights reserved.

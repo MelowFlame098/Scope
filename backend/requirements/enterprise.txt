@@ -1,0 +1,129 @@
+# Enterprise Requirements - Enterprise-Grade Features
+# Include base requirements: -r base.txt
+
+-r base.txt
+
+# Enterprise Security
+cryptography>=41.0.0,<42.0.0
+PyJWT>=2.8.0,<2.9.0
+oauthlib>=3.2.0,<3.3.0
+requests-oauthlib>=1.3.0,<1.4.0
+
+# LDAP/Active Directory Integration
+python-ldap>=3.4.0,<3.5.0
+ldap3>=2.9.0,<2.10.0
+
+# SAML Authentication
+python3-saml>=1.15.0,<1.16.0
+xmlsec>=1.3.0,<1.4.0
+
+# Multi-Factor Authentication
+pyotp>=2.9.0,<2.10.0
+qrcode>=7.4.0,<7.5.0
+
+# Enterprise Databases
+psycopg2-binary>=2.9.9  # Already in base
+cx-Oracle>=8.3.0,<8.4.0  # Oracle database support
+PyMySQL>=1.1.0,<1.2.0    # MySQL support
+pymssql>=2.2.0,<2.3.0    # SQL Server support
+
+# Message Queues and Event Streaming
+kafka-python>=2.0.0,<2.1.0
+rabbitmq>=0.2.0
+celery[redis]>=5.3.4  # Enhanced celery with Redis
+
+# Monitoring and Observability
+prometheus-client>=0.19.0,<0.20.0
+opentelemetry-api>=1.21.0,<1.22.0
+opentelemetry-sdk>=1.21.0,<1.22.0
+opentelemetry-instrumentation-fastapi>=0.42b0,<0.43b0
+opentelemetry-exporter-prometheus>=1.12.0rc1,<1.13.0
+
+# Distributed Tracing
+jaeger-client>=4.8.0,<4.9.0
+zipkin>=0.2.0
+
+# Logging and Audit
+structlog>=23.2.0  # Already in base
+elastic-apm>=6.20.0,<6.21.0
+loguru>=0.7.0,<0.8.0
+
+# API Gateway and Rate Limiting
+slowapi>=0.1.9,<0.2.0
+fastapi-limiter>=0.1.5,<0.2.0
+
+# Data Validation and Governance
+cerberus>=1.3.0,<1.4.0
+great-expectations>=0.17.0,<0.19.0
+pydantic>=2.5.0  # Already in base but ensuring enterprise features
+
+# Backup and Disaster Recovery
+backup-utils>=0.1.0  # Custom backup utilities
+s3fs>=2023.12.0,<2024.1.0  # S3 filesystem interface
+
+# Enterprise Caching
+redis-sentinel>=0.1.0
+redis-cluster>=2.1.0,<2.2.0
+
+# Load Balancing and High Availability
+haproxy-stats>=2.0.0,<3.0.0
+consul-python>=1.1.0,<1.2.0
+
+# Configuration Management
+vault-python>=0.1.0  # HashiCorp Vault integration
+etcd3>=0.12.0,<0.13.0
+
+# Enterprise Reporting
+reportlab>=4.0.0,<4.1.0
+openpyxl>=3.1.0,<3.2.0
+xlsxwriter>=3.1.0,<3.2.0
+
+# Data Export and Integration
+apache-airflow>=2.7.0,<2.8.0  # Workflow orchestration
+prefect>=2.14.0,<2.15.0       # Alternative workflow engine
+
+# Enterprise Analytics
+apache-superset>=3.0.0,<3.1.0  # Business intelligence
+metabase-api>=0.3.0,<0.4.0     # Metabase integration
+
+# Compliance and Regulatory
+iso20022>=0.1.0  # Financial messaging standards
+swift-mt>=0.1.0  # SWIFT message types
+
+# Enterprise Search
+elasticsearch>=8.11.0,<8.12.0
+elasticsearch-dsl>=8.11.0,<8.12.0
+
+# Document Management
+PyPDF2>=3.0.0,<3.1.0
+python-docx>=1.1.0,<1.2.0
+
+# Enterprise Communication
+slack-sdk>=3.26.0,<3.27.0
+microsoft-graph>=0.1.0  # Microsoft Graph API
+
+# Performance Optimization
+uvloop>=0.19.0,<0.20.0  # Fast event loop
+orjson>=3.9.0,<3.10.0   # Fast JSON serialization
+
+# Enterprise Testing
+pytest-xdist>=3.5.0,<3.6.0     # Parallel testing
+pytest-cov>=4.0.0,<4.1.0       # Coverage reporting
+pytest-mock>=3.12.0,<3.13.0    # Mocking
+locust>=2.17.0,<2.18.0          # Load testing
+
+# Container and Orchestration
+kubernetes>=28.1.0,<29.0.0
+docker>=6.1.0,<6.2.0
+
+# Enterprise Networking
+paramiko>=3.4.0,<3.5.0  # SSH client
+netmiko>=4.3.0,<4.4.0   # Network device automation
+
+# Data Serialization
+avro>=1.11.0,<1.12.0
+protobuf>=4.25.0,<4.26.0
+
+# Enterprise Scheduling
+APScheduler>=3.10.0,<3.11.0
+celery-beat>=2.5.0,<2.6.0

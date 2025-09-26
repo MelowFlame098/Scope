@@ -1,0 +1,51 @@
+# Base Requirements - Core FinScope Dependencies
+# These are the minimum requirements for the core platform
+
+# Core FastAPI and web framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Authentication and Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Environment and Configuration
+python-dotenv==1.0.0
+
+# HTTP Client
+httpx==0.25.2
+requests==2.31.0
+
+# Basic Data Processing
+pandas==2.1.4
+numpy==1.24.3
+
+# Caching and Background Tasks
+redis==5.0.1
+celery==5.3.4
+
+# WebSocket support
+websockets==12.0
+
+# CORS
+fastapi-cors==0.0.6
+
+# Validation
+email-validator==2.1.0
+
+# Logging and Monitoring
+structlog==23.2.0
+rich==13.7.0
+
+# Testing (development)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2  # for testing

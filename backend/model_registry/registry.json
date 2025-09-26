@@ -1,0 +1,130 @@
+{
+  "models": [
+    {
+      "model_id": "rsi_signal_generator_1.0.0_e0960e42",
+      "name": "RSI Signal Generator",
+      "category": "technical_analysis",
+      "prediction_type": "signal_strength",
+      "version": "1.0.0",
+      "created_at": "2025-08-11T16:05:00.591139",
+      "updated_at": "2025-08-11T16:05:00.591139",
+      "status": "ready",
+      "description": "Generates buy/sell signals based on RSI indicator",
+      "author": "system",
+      "tags": [],
+      "parameters": {
+        "period": 14,
+        "overbought": 70,
+        "oversold": 30
+      },
+      "performance_metrics": {},
+      "resource_requirements": {},
+      "dependencies": []
+    },
+    {
+      "model_id": "macd_signal_generator_1.0.0_9e465003",
+      "name": "MACD Signal Generator",
+      "category": "technical_analysis",
+      "prediction_type": "signal_strength",
+      "version": "1.0.0",
+      "created_at": "2025-08-11T16:05:00.592140",
+      "updated_at": "2025-08-11T16:05:00.592140",
+      "status": "ready",
+      "description": "Generates signals based on MACD crossovers",
+      "author": "system",
+      "tags": [],
+      "parameters": {
+        "fast_period": 12,
+        "slow_period": 26,
+        "signal_period": 9
+      },
+      "performance_metrics": {},
+      "resource_requirements": {},
+      "dependencies": []
+    },
+    {
+      "model_id": "bollinger_bands_signal_1.0.0_7df9a211",
+      "name": "Bollinger Bands Signal",
+      "category": "technical_analysis",
+      "prediction_type": "signal_strength",
+      "version": "1.0.0",
+      "created_at": "2025-08-11T16:05:00.593141",
+      "updated_at": "2025-08-11T16:05:00.593141",
+      "status": "ready",
+      "description": "Generates signals based on Bollinger Bands",
+      "author": "system",
+      "tags": [],
+      "parameters": {
+        "period": 20,
+        "std_dev": 2.0
+      },
+      "performance_metrics": {},
+      "resource_requirements": {},
+      "dependencies": []
+    },
+    {
+      "model_id": "arima_price_forecaster_1.0.0_c69730d5",
+      "name": "ARIMA Price Forecaster",
+      "category": "statistical",
+      "prediction_type": "price_target",
+      "version": "1.0.0",
+      "created_at": "2025-08-11T16:05:00.594137",
+      "updated_at": "2025-08-11T16:05:00.594137",
+      "status": "ready",
+      "description": "ARIMA model for price forecasting",
+      "author": "system",
+      "tags": [],
+      "parameters": {
+        "order": [
+          1,
+          1,
+          1
+        ]
+      },
+      "performance_metrics": {},
+      "resource_requirements": {},
+      "dependencies": []
+    },
+    {
+      "model_id": "monte_carlo_risk_simulator_1.0.0_c43abaa2",
+      "name": "Monte Carlo Risk Simulator",
+      "category": "statistical",
+      "prediction_type": "risk_score",
+      "version": "1.0.0",
+      "created_at": "2025-08-11T16:05:00.595135",
+      "updated_at": "2025-08-11T16:05:00.595135",
+      "status": "ready",
+      "description": "Monte Carlo simulation for risk assessment",
+      "author": "system",
+      "tags": [],
+      "parameters": {
+        "num_simulations": 1000,
+        "time_horizon": 252
+      },
+      "performance_metrics": {},
+      "resource_requirements": {},
+      "dependencies": []
+    },
+    {
+      "model_id": "random_forest_price_predictor_1.0.0_c96ac24d",
+      "name": "Random Forest Price Predictor",
+      "category": "machine_learning",
+      "prediction_type": "price_direction",
+      "version": "1.0.0",
+      "created_at": "2025-08-11T16:05:00.597137",
+      "updated_at": "2025-08-11T16:05:00.597137",
+      "status": "ready",
+      "description": "Random Forest model for price direction prediction",
+      "author": "system",
+      "tags": [],
+      "parameters": {
+        "n_estimators": 100,
+        "max_depth": 10
+      },
+      "performance_metrics": {},
+      "resource_requirements": {},
+      "dependencies": []
+    }
+  ],
+  "updated_at": "2025-08-11T16:05:00.597137"
+}

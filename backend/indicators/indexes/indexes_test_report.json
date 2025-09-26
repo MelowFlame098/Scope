@@ -1,0 +1,59 @@
+{
+  "timestamp": "2025-09-15T13:18:26.846020",
+  "test_summary": {
+    "total_tests": 30,
+    "passed": 9,
+    "failed": 21,
+    "warnings": 0,
+    "skipped": 0,
+    "success_rate": 0.3
+  },
+  "detailed_results": {
+    "APT Model Tests": [
+      "TestOutcome(test_case=TestCase(name='APT Basic Functionality', test_type=<TestType.UNIT: 'unit'>, description='Test APT model initialization', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='APT Integration', test_type=<TestType.INTEGRATION: 'integration'>, description='Test APT with real data', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='APT Performance', test_type=<TestType.PERFORMANCE: 'performance'>, description='Test APT execution speed', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.PASS: 'pass'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='APT Accuracy', test_type=<TestType.ACCURACY: 'accuracy'>, description='Test APT prediction accuracy', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='APT Robustness', test_type=<TestType.ROBUSTNESS: 'robustness'>, description='Test APT with edge cases', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)"
+    ],
+    "CAPM Model Tests": [
+      "TestOutcome(test_case=TestCase(name='CAPM Basic Functionality', test_type=<TestType.UNIT: 'unit'>, description='Test CAPM model initialization', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='CAPM Integration', test_type=<TestType.INTEGRATION: 'integration'>, description='Test CAPM with real data', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='CAPM Performance', test_type=<TestType.PERFORMANCE: 'performance'>, description='Test CAPM execution speed', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.PASS: 'pass'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='CAPM Accuracy', test_type=<TestType.ACCURACY: 'accuracy'>, description='Test CAPM prediction accuracy', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='CAPM Robustness', test_type=<TestType.ROBUSTNESS: 'robustness'>, description='Test CAPM with edge cases', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)"
+    ],
+    "Macro Factor Model Tests": [
+      "TestOutcome(test_case=TestCase(name='Macro Basic Functionality', test_type=<TestType.UNIT: 'unit'>, description='Test Macro model initialization', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='Macro Integration', test_type=<TestType.INTEGRATION: 'integration'>, description='Test Macro with real data', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='Macro Performance', test_type=<TestType.PERFORMANCE: 'performance'>, description='Test Macro execution speed', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.PASS: 'pass'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='Macro Accuracy', test_type=<TestType.ACCURACY: 'accuracy'>, description='Test Macro prediction accuracy', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='Macro Robustness', test_type=<TestType.ROBUSTNESS: 'robustness'>, description='Test Macro with edge cases', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)"
+    ],
+    "ML Models Tests": [
+      "TestOutcome(test_case=TestCase(name='ML Basic Functionality', test_type=<TestType.UNIT: 'unit'>, description='Test ML models initialization', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.PASS: 'pass'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='ML Integration', test_type=<TestType.INTEGRATION: 'integration'>, description='Test ML with real data', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='ML Performance', test_type=<TestType.PERFORMANCE: 'performance'>, description='Test ML execution speed', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='ML Accuracy', test_type=<TestType.ACCURACY: 'accuracy'>, description='Test ML prediction accuracy', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='ML Robustness', test_type=<TestType.ROBUSTNESS: 'robustness'>, description='Test ML with edge cases', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)"
+    ],
+    "Unified Interface Tests": [
+      "TestOutcome(test_case=TestCase(name='Unified Basic Functionality', test_type=<TestType.UNIT: 'unit'>, description='Test Unified interface initialization', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.PASS: 'pass'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='Unified Integration', test_type=<TestType.INTEGRATION: 'integration'>, description='Test Unified with all models', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='Unified Performance', test_type=<TestType.PERFORMANCE: 'performance'>, description='Test Unified execution speed', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='Unified Ensemble', test_type=<TestType.ACCURACY: 'accuracy'>, description='Test Unified ensemble predictions', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='Unified Robustness', test_type=<TestType.ROBUSTNESS: 'robustness'>, description='Test Unified with edge cases', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)"
+    ],
+    "Feature Engineering Tests": [
+      "TestOutcome(test_case=TestCase(name='Feature Basic Functionality', test_type=<TestType.UNIT: 'unit'>, description='Test Feature engineering initialization', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.FAIL: 'fail'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='Feature Integration', test_type=<TestType.INTEGRATION: 'integration'>, description='Test Feature with real data', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.PASS: 'pass'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0276033878326416, details=None)",
+      "TestOutcome(test_case=TestCase(name='Feature Performance', test_type=<TestType.PERFORMANCE: 'performance'>, description='Test Feature execution speed', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.PASS: 'pass'>, actual_value=None, expected_value=None, error_message='', execution_time=0.0, details=None)",
+      "TestOutcome(test_case=TestCase(name='Feature Quality', test_type=<TestType.ACCURACY: 'accuracy'>, description='Test Feature quality and completeness', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.PASS: 'pass'>, actual_value=None, expected_value=None, error_message='', execution_time=0.02306509017944336, details=None)",
+      "TestOutcome(test_case=TestCase(name='Feature Robustness', test_type=<TestType.ROBUSTNESS: 'robustness'>, description='Test Feature with edge cases', expected_result=None, tolerance=0.01, timeout=30.0, critical=False), result=<TestResult.PASS: 'pass'>, actual_value=None, expected_value=None, error_message='', execution_time=0.056741952896118164, details=None)"
+    ]
+  },
+  "recommendations": [
+    "Overall success rate is below 80%. Consider reviewing failed tests and improving model robustness.",
+    "21 tests failed. Review error messages and fix critical issues."
+  ]
+}

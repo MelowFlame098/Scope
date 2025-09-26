@@ -1,0 +1,274 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  username          String   @unique
+  firstName         String?
+  lastName          String?
+  hashedPassword    String
+  isActive          Boolean  @default(true)
+  isVerified        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lastLoginAt       DateTime?
+  
+  // Trading related
+  portfolios        Portfolio[]
+  trades            Trade[]
+  watchlists        Watchlist[]
+  alerts            Alert[]
+  
+  // Social trading
+  socialProfile     SocialProfile?
+  followedTraders   Follow[] @relation("Follower")
+  followers         Follow[] @relation("Following")
+  posts             SocialPost[]
+  comments          Comment[]
+  likes             Like[]
+  
+  // Copy trading
+  copySettings      CopyTradingSettings[]
+  copiedTrades      CopiedTrade[]
+  
+  @@map("users")
+}
+
+model Portfolio {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  description   String?
+  totalValue    Decimal  @db.Decimal(20, 8)
+  cashBalance   Decimal  @db.Decimal(20, 8)
+  isDefault     Boolean  @default(false)
+  isPaperTrade  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  positions     Position[]
+  trades        Trade[]
+  
+  @@map("portfolios")
+}
+
+model Position {
+  id            String   @id @default(cuid())
+  portfolioId   String
+  symbol        String
+  quantity      Decimal  @db.Decimal(20, 8)
+  averagePrice  Decimal  @db.Decimal(20, 8)
+  currentPrice  Decimal  @db.Decimal(20, 8)
+  marketValue   Decimal  @db.Decimal(20, 8)
+  unrealizedPnL Decimal  @db.Decimal(20, 8)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  portfolio     Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  
+  @@unique([portfolioId, symbol])
+  @@map("positions")
+}
+
+model Trade {
+  id            String      @id @default(cuid())
+  userId        String
+  portfolioId   String
+  symbol        String
+  side          TradeSide
+  type          TradeType
+  status        TradeStatus
+  quantity      Decimal     @db.Decimal(20, 8)
+  price         Decimal?    @db.Decimal(20, 8)
+  executedPrice Decimal?    @db.Decimal(20, 8)
+  executedQty   Decimal?    @db.Decimal(20, 8)
+  fees          Decimal?    @db.Decimal(20, 8)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  executedAt    DateTime?
+  
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolio     Portfolio   @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  copiedTrades  CopiedTrade[]
+  
+  @@map("trades")
+}
+
+model Watchlist {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  symbols   String[] // Array of symbols
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("watchlists")
+}
+
+model Alert {
+  id          String      @id @default(cuid())
+  userId      String
+  symbol      String
+  condition   AlertCondition
+  targetPrice Decimal     @db.Decimal(20, 8)
+  message     String?
+  isActive    Boolean     @default(true)
+  isTriggered Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  triggeredAt DateTime?
+  
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("alerts")
+}
+
+model SocialProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  displayName     String?
+  bio             String?
+  avatar          String?
+  isPublic        Boolean  @default(true)
+  totalReturn     Decimal? @db.Decimal(10, 4)
+  winRate         Decimal? @db.Decimal(5, 4)
+  followersCount  Int      @default(0)
+  followingCount  Int      @default(0)
+  tradesCount     Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("social_profiles")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model SocialPost {
+  id        String    @id @default(cuid())
+  userId    String
+  content   String
+  imageUrl  String?
+  likesCount Int      @default(0)
+  commentsCount Int   @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  likes     Like[]
+  
+  @@map("social_posts")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([postId, userId])
+  @@map("likes")
+}
+
+model CopyTradingSettings {
+  id              String  @id @default(cuid())
+  userId          String
+  targetTraderId  String
+  isActive        Boolean @default(true)
+  copyRatio       Decimal @db.Decimal(5, 4) // 0.0001 to 1.0000
+  maxRiskPercent  Decimal @db.Decimal(5, 4)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, targetTraderId])
+  @@map("copy_trading_settings")
+}
+
+model CopiedTrade {
+  id              String   @id @default(cuid())
+  originalTradeId String
+  userId          String
+  symbol          String
+  side            TradeSide
+  quantity        Decimal  @db.Decimal(20, 8)
+  price           Decimal  @db.Decimal(20, 8)
+  status          TradeStatus
+  createdAt       DateTime @default(now())
+  
+  originalTrade   Trade    @relation(fields: [originalTradeId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("copied_trades")
+}
+
+// Enums
+enum TradeSide {
+  BUY
+  SELL
+}
+
+enum TradeType {
+  MARKET
+  LIMIT
+  STOP
+  STOP_LIMIT
+}
+
+enum TradeStatus {
+  PENDING
+  PROCESSING
+  FILLED
+  PARTIALLY_FILLED
+  CANCELLED
+  REJECTED
+}
+
+enum AlertCondition {
+  ABOVE
+  BELOW
+  CROSSES_ABOVE
+  CROSSES_BELOW
+}

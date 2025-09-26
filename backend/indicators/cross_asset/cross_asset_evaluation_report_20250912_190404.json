@@ -1,0 +1,89 @@
+{
+  "evaluation_date": "2025-09-12T19:04:04.224653",
+  "asset_universe": [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "EFA",
+    "EEM",
+    "TLT",
+    "IEF",
+    "SHY",
+    "HYG",
+    "EMB",
+    "GLD",
+    "SLV",
+    "USO",
+    "DBA",
+    "DBC",
+    "UUP",
+    "FXE",
+    "FXY",
+    "FXA",
+    "FXC",
+    "BTC-USD",
+    "ETH-USD"
+  ],
+  "analysis_periods": [
+    "daily",
+    "weekly",
+    "monthly"
+  ],
+  "evaluation_timeframe": "252 trading days",
+  "best_performing_indicators": {
+    "daily": "CrossAsset_Comprehensive",
+    "weekly": "CrossAsset_Comprehensive",
+    "monthly": "CrossAsset_Comprehensive"
+  },
+  "indicator_recommendations": {
+    "high_performance": [],
+    "optimization": [
+      "Implement dynamic correlation monitoring for regime changes",
+      "Use multi-timeframe analysis for better signal confirmation",
+      "Add currency hedging for international asset exposure",
+      "Implement volatility targeting for risk management",
+      "Use factor-based attribution for performance analysis",
+      "Add alternative assets for enhanced diversification",
+      "Implement regime-aware asset allocation models",
+      "Use machine learning for correlation prediction"
+    ]
+  },
+  "risk_warnings": [
+    "CrossAsset_Comprehensive has high drawdown risk (43.5%) - enhance diversification"
+  ],
+  "optimization_suggestions": [
+    "Implement dynamic correlation monitoring for regime changes",
+    "Use multi-timeframe analysis for better signal confirmation",
+    "Add currency hedging for international asset exposure",
+    "Implement volatility targeting for risk management",
+    "Use factor-based attribution for performance analysis",
+    "Add alternative assets for enhanced diversification",
+    "Implement regime-aware asset allocation models",
+    "Use machine learning for correlation prediction"
+  ],
+  "correlation_strategies": [
+    "Monitor correlation breakdowns during market stress",
+    "Use rolling correlation windows for dynamic adjustment",
+    "Implement correlation-based pair trading strategies"
+  ],
+  "arbitrage_strategies": [
+    "Identify cross-asset arbitrage opportunities",
+    "Monitor basis spreads across related instruments",
+    "Use statistical arbitrage for mean reversion"
+  ],
+  "allocation_strategies": [
+    "Implement risk parity allocation across asset classes",
+    "Use Black-Litterman model for optimal allocation",
+    "Dynamic rebalancing based on volatility regimes"
+  ],
+  "factor_strategies": [
+    "Use factor-based allocation for systematic exposure",
+    "Implement momentum and mean reversion factors",
+    "Add quality and value factors for enhanced returns"
+  ],
+  "diversification_strategies": [
+    "Maximize diversification benefits across asset classes",
+    "Use alternative assets for portfolio enhancement",
+    "Implement correlation-based diversification strategies"
+  ]
+}
