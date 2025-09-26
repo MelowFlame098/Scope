@@ -1,6 +1,6 @@
-# FinScope - Advanced Financial Analysis Platform
+# Scope - Advanced Trading Platform
 
-FinScope is a comprehensive financial analysis platform that combines real-time market data, AI-powered insights, news aggregation, and community features to provide traders and investors with powerful tools for making informed decisions.
+Scope is a comprehensive trading platform that combines real-time market data, AI-powered insights, news aggregation, and community features to provide traders and investors with powerful tools for making informed decisions.
 
 ## 🚀 Features
 
