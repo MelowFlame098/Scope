@@ -1,0 +1,322 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [created]
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.10', '3.11', '3.12']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: cargo-index-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Cache Rust build
+        uses: actions/cache@v4
+        with:
+          path: rust/target
+          key: rust-target-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Build crypto_indicators wheel
+        working-directory: rust
+        run: |
+          maturin build --release --manifest-path crypto_indicators/Cargo.toml -m crypto_indicators/src/lib.rs
+          ls -la target/wheels
+
+      - name: Build futures_indicators wheel
+        working-directory: rust
+        run: |
+          maturin build --release --manifest-path futures_indicators/Cargo.toml -m futures_indicators/src/lib.rs
+          ls -la target/wheels
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: crypto_indicators-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: rust/target/wheels/*.whl
+
+      - name: Upload futures wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: futures_indicators-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: rust/target/wheels/*futures_indicators*.whl
+
+      - name: Install wheel
+        run: |
+          pip install --no-index --find-links rust/target/wheels crypto_indicators
+          pip install --no-index --find-links rust/target/wheels futures_indicators
+
+      - name: Install test dependencies
+        run: |
+          pip install numpy pandas scipy statsmodels arch scikit-learn pytest
+
+      - name: Run tests
+        run: |
+          python -m pytest backend/tests --junitxml=pytest-full.xml --durations=10
+
+      - name: Upload full test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-test-report-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: pytest-full.xml
+
+      - name: Run parity tests (segmented)
+        run: |
+          python -m pytest -q -m parity backend/tests --junitxml=pytest-parity.xml --durations=10
+
+      - name: Upload parity test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-test-report-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: pytest-parity.xml
+
+      - name: Run edge-case tests (segmented)
+        run: |
+          python -m pytest -q -m edgecase backend/tests --junitxml=pytest-edgecase.xml --durations=10
+
+      - name: Upload edge-case test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: edgecase-test-report-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: pytest-edgecase.xml
+
+  parity-tests:
+    name: Parity Tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.10', '3.11', '3.12']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: cargo-index-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Cache Rust build
+        uses: actions/cache@v4
+        with:
+          path: rust/target
+          key: rust-target-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Build crypto_indicators wheel
+        working-directory: rust
+        run: |
+          maturin build --release --manifest-path crypto_indicators/Cargo.toml -m crypto_indicators/src/lib.rs
+          ls -la target/wheels
+
+      - name: Build futures_indicators wheel
+        working-directory: rust
+        run: |
+          maturin build --release --manifest-path futures_indicators/Cargo.toml -m futures_indicators/src/lib.rs
+          ls -la target/wheels
+
+      - name: Install wheel
+        run: |
+          pip install --no-index --find-links rust/target/wheels crypto_indicators
+          pip install --no-index --find-links rust/target/wheels futures_indicators
+
+      - name: Install test dependencies
+        run: |
+          pip install numpy pandas scipy statsmodels arch scikit-learn pytest
+
+      - name: Run parity tests
+        run: |
+          python -m pytest -q -m parity backend/tests --junitxml=pytest-parity.xml --durations=10
+
+      - name: Upload parity test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-test-report-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: pytest-parity.xml
+
+  edgecase-tests:
+    name: Edgecase Tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.10', '3.11', '3.12']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: cargo-index-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Cache Rust build
+        uses: actions/cache@v4
+        with:
+          path: rust/target
+          key: rust-target-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Build crypto_indicators wheel
+        working-directory: rust
+        run: |
+          maturin build --release --manifest-path crypto_indicators/Cargo.toml -m crypto_indicators/src/lib.rs
+          ls -la target/wheels
+
+      - name: Build futures_indicators wheel
+        working-directory: rust
+        run: |
+          maturin build --release --manifest-path futures_indicators/Cargo.toml -m futures_indicators/src/lib.rs
+          ls -la target/wheels
+
+      - name: Install wheel
+        run: |
+          pip install --no-index --find-links rust/target/wheels crypto_indicators
+          pip install --no-index --find-links rust/target/wheels futures_indicators
+
+      - name: Install test dependencies
+        run: |
+          pip install numpy pandas scipy statsmodels arch scikit-learn pytest
+
+      - name: Run edge-case tests
+        run: |
+          python -m pytest -q -m edgecase backend/tests --junitxml=pytest-edgecase.xml --durations=10
+
+      - name: Upload edge-case test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: edgecase-test-report-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: pytest-edgecase.xml
+
+  publish-wheel:
+    if: ${{ github.event_name == 'release' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: cargo-index-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Cache Rust build
+        uses: actions/cache@v4
+        with:
+          path: rust/target
+          key: rust-target-${{ runner.os }}-${{ hashFiles('rust/**/Cargo.lock') }}
+
+      - name: Install maturin
+        run: pip install maturin==1.5.1
+
+      - name: Build crypto_indicators wheel (release)
+        working-directory: rust
+        run: |
+          maturin build --release --manifest-path crypto_indicators/Cargo.toml -m crypto_indicators/src/lib.rs
+          ls -la target/wheels
+
+      - name: Build futures_indicators wheel (release)
+        working-directory: rust
+        run: |
+          maturin build --release --manifest-path futures_indicators/Cargo.toml -m futures_indicators/src/lib.rs
+          ls -la target/wheels
+
+      - name: Publish wheel to GitHub Release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            rust/target/wheels/*crypto_indicators*.whl
+            rust/target/wheels/*futures_indicators*.whl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

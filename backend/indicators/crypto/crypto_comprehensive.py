@@ -8,6 +8,14 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
+# Try optional Rust-accelerated implementations via PyO3
+try:
+    import crypto_indicators as rust_crypto
+    _RUST_CRYPTO_AVAILABLE = True
+except Exception:
+    rust_crypto = None
+    _RUST_CRYPTO_AVAILABLE = False
+
 class AssetType(Enum):
     STOCK = "stock"
     CRYPTO = "crypto"
@@ -75,9 +83,22 @@ class CryptoComprehensiveIndicators:
             # Stock-to-Flow ratio
             stock_to_flow = cumulative_supply / daily_production
             
-            # S2F model price prediction
+            # S2F model price prediction (Python baseline)
             # Based on PlanB's model: Price = exp(3.3 * ln(S2F) - 15.7)
             predicted_price = np.exp(3.3 * np.log(stock_to_flow) - 15.7)
+
+            # If Rust implementation available, use it to refine predictions
+            try:
+                if _RUST_CRYPTO_AVAILABLE:
+                    prices = list(map(float, data['close']))
+                    stock_vec = list(map(float, cumulative_supply))
+                    flow_vec = list(map(float, np.full(len(data), daily_production)))
+                    out = rust_crypto.stock_to_flow(stock_vec, flow_vec, prices)
+                    rp = out.get('predicted_series')
+                    if rp is not None:
+                        predicted_price = np.array(rp, dtype=float)
+            except Exception:
+                pass
             
             # Calculate model deviation
             actual_price = data['close']
@@ -99,7 +120,7 @@ class CryptoComprehensiveIndicators:
                     'asset': asset,
                     'current_s2f': stock_to_flow.iloc[-1],
                     'current_deviation': price_deviation.iloc[-1],
-                    'model_r2': np.corrcoef(np.log(actual_price), np.log(predicted_price))[0,1]**2,
+                    'model_r2': float(np.corrcoef(np.log(actual_price), np.log(predicted_price))[0,1]**2),
                     'interpretation': 'Higher S2F suggests higher scarcity and potential price appreciation'
                 },
                 confidence=0.75,
@@ -126,9 +147,21 @@ class CryptoComprehensiveIndicators:
             # Metcalfe's Law: Network value proportional to square of users
             network_value = active_addresses ** 2
             
-            # Normalize to price scale
+            # Normalize to price scale (Python baseline)
             price_scale_factor = data['close'].mean() / network_value.mean()
             metcalfe_price = network_value * price_scale_factor
+
+            # If Rust implementation available, use regression-based estimate
+            try:
+                if _RUST_CRYPTO_AVAILABLE:
+                    addresses = list(map(float, active_addresses))
+                    prices = list(map(float, data['close']))
+                    out = rust_crypto.metcalfe_law(addresses, prices)
+                    rp = out.get('predicted_series')
+                    if rp is not None:
+                        metcalfe_price = np.array(rp, dtype=float)
+            except Exception:
+                pass
             
             # Calculate NVT-like ratio using Metcalfe's value
             nvt_metcalfe = data['close'] / (network_value / 1e6)  # Scaled for readability
@@ -254,27 +287,46 @@ class CryptoComprehensiveIndicators:
             if len(X_clean) < 10:
                 raise ValueError("Insufficient valid data points")
             
-            # Fit regression
-            coefficients = np.linalg.lstsq(X_clean, y_clean, rcond=None)[0]
-            
-            # Generate predictions
-            log_predicted = X @ coefficients
-            predicted_prices = np.exp(log_predicted)
+            # Prefer Rust-accelerated implementation if available
+            predicted_prices = None
+            upper_band = None
+            lower_band = None
+            coefficients = None
+            r_squared = None
+            try:
+                if _RUST_CRYPTO_AVAILABLE:
+                    ts_days = time_days.astype(float).tolist()
+                    out = rust_crypto.crypto_log_regression(prices.astype(float).tolist(), ts_days)
+                    predicted_prices = np.array(out.get('predicted_series'), dtype=float)
+                    upper_band = np.array(out.get('upper_band'), dtype=float)
+                    lower_band = np.array(out.get('lower_band'), dtype=float)
+                    coefficients = np.array(out.get('coefficients'), dtype=float)
+                    r_squared = float(out.get('r_squared')) if out.get('r_squared') is not None else None
+            except Exception:
+                pass
+
+            # Fallback to Python regression if Rust unavailable
+            if predicted_prices is None:
+                coefficients = np.linalg.lstsq(X_clean, y_clean, rcond=None)[0]
+                log_predicted = X @ coefficients
+                predicted_prices = np.exp(log_predicted)
             
             # Calculate regression bands (support and resistance)
             residuals = log_prices[valid_mask] - (X_clean @ coefficients)
             std_residual = np.std(residuals)
             
-            upper_band = np.exp(log_predicted + 2 * std_residual)
-            lower_band = np.exp(log_predicted - 2 * std_residual)
+            if upper_band is None or lower_band is None:
+                upper_band = np.exp(log_predicted + 2 * std_residual)
+                lower_band = np.exp(log_predicted - 2 * std_residual)
             
             # Price position within bands
             band_position = (prices - predicted_prices) / (upper_band - lower_band)
             
-            # R-squared
-            ss_res = np.sum(residuals ** 2)
-            ss_tot = np.sum((y_clean - np.mean(y_clean)) ** 2)
-            r_squared = 1 - (ss_res / ss_tot)
+            # R-squared (fallback if not provided by Rust)
+            if r_squared is None:
+                ss_res = np.sum(residuals ** 2)
+                ss_tot = np.sum((y_clean - np.mean(y_clean)) ** 2)
+                r_squared = 1 - (ss_res / ss_tot)
             
             result_df = pd.DataFrame({
                 'price': prices,
@@ -289,8 +341,8 @@ class CryptoComprehensiveIndicators:
                 name="Crypto Logarithmic Regression",
                 values=result_df,
                 metadata={
-                    'coefficients': coefficients.tolist(),
-                    'r_squared': r_squared,
+                    'coefficients': coefficients.tolist() if hasattr(coefficients, 'tolist') else list(coefficients) if coefficients is not None else [],
+                    'r_squared': float(r_squared) if r_squared is not None else 0.0,
                     'current_band_position': band_position.iloc[-1],
                     'trend_strength': abs(coefficients[2]),  # Linear time coefficient
                     'interpretation': 'Band position > 0.5 suggests overvaluation, < -0.5 undervaluation'

@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "crypto_indicators",
+    "futures_indicators",
+]
+members = [
+    "crypto_indicators",
+]
+resolver = "2"

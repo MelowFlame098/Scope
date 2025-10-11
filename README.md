@@ -1,5 +1,10 @@
 # Scope - Advanced Trading Platform
 
+![CI](https://img.shields.io/github/actions/workflow/status/yourusername/finscope/ci.yml?branch=main&label=CI)
+![Parity Tests](https://img.shields.io/github/actions/workflow/status/yourusername/finscope/ci.yml?branch=main&label=parity%20tests)
+![Edgecase Tests](https://img.shields.io/github/actions/workflow/status/yourusername/finscope/ci.yml?branch=main&label=edgecase%20tests)
+![Latest Release](https://img.shields.io/github/v/release/yourusername/finscope?label=release)
+
 Scope is a comprehensive trading platform that combines real-time market data, AI-powered insights, news aggregation, and community features to provide traders and investors with powerful tools for making informed decisions.
 
 ## 🚀 Features

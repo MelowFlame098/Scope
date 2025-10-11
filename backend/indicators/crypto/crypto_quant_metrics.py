@@ -181,35 +181,44 @@ class MVRVModel:
             historical_data: DataFrame with columns ['date', 'market_cap', 'realized_cap']
         """
         try:
-            mvrv_ratios = []
-            timestamps = []
-            
-            for _, row in historical_data.iterrows():
-                mvrv = self.calculate_mvrv(row['market_cap'], row['realized_cap'])
-                mvrv_ratios.append(mvrv)
-                timestamps.append(row['date'])
-            
-            current_mvrv = mvrv_ratios[-1] if mvrv_ratios else 1.0
-            mvrv_z_score = self.calculate_mvrv_z_score(current_mvrv, mvrv_ratios)
-            
-            # Calculate percentile
-            mvrv_percentile = stats.percentileofscore(mvrv_ratios, current_mvrv)
-            
-            # Determine market phase
-            market_phase = self.determine_market_phase(mvrv_z_score)
-            
-            # Calculate bands
-            mvrv_bands = self.calculate_mvrv_bands(mvrv_ratios)
-            
-            return MVRVResult(
-                current_mvrv=current_mvrv,
-                mvrv_z_score=mvrv_z_score,
-                mvrv_percentile=mvrv_percentile,
-                market_phase=market_phase,
-                historical_mvrv=mvrv_ratios,
-                mvrv_bands=mvrv_bands,
-                timestamps=timestamps
-            )
+            # Prefer Rust implementation if available
+            try:
+                import crypto_indicators as ci
+                market_caps = historical_data['market_cap'].astype(float).tolist()
+                realized_caps = historical_data['realized_cap'].astype(float).tolist()
+                ts = [str(d) for d in historical_data['date'].tolist()]
+                res = ci.mvrv_analyze(market_caps, realized_caps, ts)
+                return MVRVResult(
+                    current_mvrv=res["current_mvrv"],
+                    mvrv_z_score=res["mvrv_z_score"],
+                    mvrv_percentile=res["mvrv_percentile"],
+                    market_phase=res["market_phase"],
+                    historical_mvrv=res["historical_mvrv"],
+                    mvrv_bands=res["mvrv_bands"],
+                    timestamps=[pd.to_datetime(t) for t in res.get("timestamps", ts)]
+                )
+            except Exception:
+                # Python fallback
+                mvrv_ratios = []
+                timestamps = []
+                for _, row in historical_data.iterrows():
+                    mvrv = self.calculate_mvrv(row['market_cap'], row['realized_cap'])
+                    mvrv_ratios.append(mvrv)
+                    timestamps.append(row['date'])
+                current_mvrv = mvrv_ratios[-1] if mvrv_ratios else 1.0
+                mvrv_z_score = self.calculate_mvrv_z_score(current_mvrv, mvrv_ratios)
+                mvrv_percentile = stats.percentileofscore(mvrv_ratios, current_mvrv)
+                market_phase = self.determine_market_phase(mvrv_z_score)
+                mvrv_bands = self.calculate_mvrv_bands(mvrv_ratios)
+                return MVRVResult(
+                    current_mvrv=current_mvrv,
+                    mvrv_z_score=mvrv_z_score,
+                    mvrv_percentile=mvrv_percentile,
+                    market_phase=market_phase,
+                    historical_mvrv=mvrv_ratios,
+                    mvrv_bands=mvrv_bands,
+                    timestamps=timestamps
+                )
             
         except Exception as e:
             logger.error(f"Error in MVRV analysis: {str(e)}")
@@ -293,34 +302,41 @@ class SOPRModel:
             historical_data: DataFrame with columns ['date', 'sopr']
         """
         try:
-            sopr_values = historical_data['sopr'].tolist()
-            timestamps = historical_data['date'].tolist()
-            
-            # Calculate moving average
-            window = min(7, len(sopr_values))
-            sopr_ma = pd.Series(sopr_values).rolling(window=window, min_periods=1).mean().tolist()
-            
-            current_sopr = sopr_values[-1] if sopr_values else 1.0
-            current_sopr_ma = sopr_ma[-1] if sopr_ma else 1.0
-            
-            # Calculate trend
-            sopr_trend = self.calculate_sopr_trend(sopr_values)
-            
-            # Determine market sentiment
-            market_sentiment = self.determine_market_sentiment(current_sopr, current_sopr_ma)
-            
-            # Calculate profit/loss ratio (simplified)
-            profit_loss_ratio = current_sopr  # Approximation
-            
-            return SOPRResult(
-                current_sopr=current_sopr,
-                sopr_trend=sopr_trend,
-                profit_loss_ratio=profit_loss_ratio,
-                market_sentiment=market_sentiment,
-                historical_sopr=sopr_values,
-                sopr_ma=sopr_ma,
-                timestamps=timestamps
-            )
+            # Prefer Rust implementation if available
+            try:
+                import crypto_indicators as ci
+                sopr_values = historical_data['sopr'].astype(float).tolist()
+                ts = [str(d) for d in historical_data['date'].tolist()]
+                res = ci.sopr_analyze(sopr_values, ts)
+                return SOPRResult(
+                    current_sopr=res["current_sopr"],
+                    sopr_trend=res["sopr_trend"],
+                    profit_loss_ratio=res["profit_loss_ratio"],
+                    market_sentiment=res["market_sentiment"],
+                    historical_sopr=res["historical_sopr"],
+                    sopr_ma=res["sopr_ma"],
+                    timestamps=[pd.to_datetime(t) for t in res.get("timestamps", ts)]
+                )
+            except Exception:
+                # Python fallback
+                sopr_values = historical_data['sopr'].tolist()
+                timestamps = historical_data['date'].tolist()
+                window = min(7, len(sopr_values))
+                sopr_ma = pd.Series(sopr_values).rolling(window=window, min_periods=1).mean().tolist()
+                current_sopr = sopr_values[-1] if sopr_values else 1.0
+                current_sopr_ma = sopr_ma[-1] if sopr_ma else 1.0
+                sopr_trend = self.calculate_sopr_trend(sopr_values)
+                market_sentiment = self.determine_market_sentiment(current_sopr, current_sopr_ma)
+                profit_loss_ratio = current_sopr
+                return SOPRResult(
+                    current_sopr=current_sopr,
+                    sopr_trend=sopr_trend,
+                    profit_loss_ratio=profit_loss_ratio,
+                    market_sentiment=market_sentiment,
+                    historical_sopr=sopr_values,
+                    sopr_ma=sopr_ma,
+                    timestamps=timestamps
+                )
             
         except Exception as e:
             logger.error(f"Error in SOPR analysis: {str(e)}")
@@ -391,6 +407,30 @@ class PuellMultipleModel:
             historical_data: DataFrame with columns ['date', 'daily_issuance_usd', 'issuance_ma_365']
         """
         try:
+            # Prefer Rust implementation if available
+            try:
+                import crypto_indicators as ci
+                daily_issuance_usd = historical_data['daily_issuance_usd'].astype(float).tolist()
+                issuance_ma_365 = historical_data['issuance_ma_365'].astype(float).tolist()
+                timestamps = [str(ts) for ts in historical_data['date'].tolist()]
+                res = ci.puell_analyze(daily_issuance_usd, issuance_ma_365, timestamps)
+                return PuellResult(
+                    current_puell=float(res.get('current_puell', 1.0)),
+                    puell_percentile=float(res.get('puell_percentile', 50.0)),
+                    mining_profitability=str(res.get('mining_profitability', 'Unknown')),
+                    market_cycle_phase=str(res.get('market_cycle_phase', 'Neutral - Consolidation')),
+                    historical_puell=list(res.get('historical_puell', [])),
+                    puell_bands={
+                        'bottom': float(res.get('puell_bands', {}).get('bottom', 0)),
+                        'low': float(res.get('puell_bands', {}).get('low', 0)),
+                        'fair': float(res.get('puell_bands', {}).get('fair', 0)),
+                        'high': float(res.get('puell_bands', {}).get('high', 0)),
+                        'top': float(res.get('puell_bands', {}).get('top', 0)),
+                    },
+                    timestamps=historical_data['date'].tolist()
+                )
+            except Exception:
+                pass
             puell_values = []
             timestamps = []
             
@@ -490,6 +530,25 @@ class HashRibbonsModel:
             historical_data: DataFrame with columns ['date', 'hash_rate', 'difficulty']
         """
         try:
+            # Prefer Rust implementation if available
+            try:
+                import crypto_indicators as ci
+                hash_rate = historical_data['hash_rate'].astype(float).tolist()
+                difficulty = historical_data['difficulty'].astype(float).tolist() if 'difficulty' in historical_data.columns else None
+                timestamps = [str(ts) for ts in historical_data['date'].tolist()]
+                res = ci.hash_ribbons_analyze(hash_rate, difficulty, timestamps)
+                return HashRibbonsResult(
+                    hash_ribbon_signal=str(res.get('hash_ribbon_signal', 'neutral')),
+                    miner_capitulation=bool(res.get('miner_capitulation', False)),
+                    hash_rate_trend=str(res.get('hash_rate_trend', 'Insufficient Data')),
+                    difficulty_adjustment=float(res.get('difficulty_adjustment', 0.0)),
+                    mining_health=str(res.get('mining_health', 'Fair - Stable Network')),
+                    hash_rate_ma_30=list(res.get('hash_rate_ma_30', [])),
+                    hash_rate_ma_60=list(res.get('hash_rate_ma_60', [])),
+                    timestamps=historical_data['date'].tolist()
+                )
+            except Exception:
+                pass
             # Calculate moving averages
             hash_rates = historical_data['hash_rate'].tolist()
             hash_rate_ma_30 = historical_data['hash_rate'].rolling(window=30, min_periods=1).mean().tolist()

@@ -1,1 +1,32 @@
-node_modules
+node_modules/
+
+# OS artifacts
+.DS_Store
+
+# Next.js build output
+.next/
+out/
+dist/
+
+# Logs and coverage
+*.log
+coverage/
+
+# Python caches
+__pycache__/
+*.pyc
+backend/__pycache__/
+backend/.pytest_cache/
+backend/**/__pycache__/
+
+# Rust build artifacts
+rust/**/target/
+rust/target/
+rust/target/maturin/
+rust/target/wheels/
+**/*.dylib
+
+# Env files
+.env
+.env.local
+.env.*.local

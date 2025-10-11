@@ -204,6 +204,29 @@ class HODLWavesModel:
         Args:
             historical_data: DataFrame with columns ['date', 'age_days', 'value']
         """
+        # Prefer Rust implementation if available
+        try:
+            import crypto_indicators as ci
+            try:
+                dates_list = historical_data['date'].astype(str).tolist()
+                age_days_list = historical_data['age_days'].astype(float).tolist()
+                values_list = historical_data['value'].astype(float).tolist()
+                res = ci.hodl_waves_analyze(dates_list, age_days_list, values_list)
+                return HODLWavesResult(
+                    age_distribution=res.get('age_distribution', {}),
+                    hodl_strength=res.get('hodl_strength', 0.0),
+                    supply_maturity=res.get('supply_maturity', 'Unknown'),
+                    long_term_holder_ratio=res.get('long_term_holder_ratio', 0.0),
+                    recent_activity_ratio=res.get('recent_activity_ratio', 0.0),
+                    hodl_trend=res.get('hodl_trend', 'Insufficient Data'),
+                    timestamps=res.get('timestamps', []),
+                )
+            except Exception:
+                # Fall back to Python implementation below
+                pass
+        except Exception:
+            # If crypto_indicators not available, proceed with Python fallback
+            pass
         try:
             # Group by date and calculate age distribution for each date
             timestamps = []

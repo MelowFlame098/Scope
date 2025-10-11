@@ -1,0 +1,26 @@
+[package]
+name = "futures_indicators"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "futures_indicators"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.20", features = ["extension-module"] }
+numpy = "0.21"
+ndarray = { version = "0.15", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
+
+[package.metadata.maturin]
+name = "futures_indicators"
+requires-python = ">=3.10"
+classifier = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]

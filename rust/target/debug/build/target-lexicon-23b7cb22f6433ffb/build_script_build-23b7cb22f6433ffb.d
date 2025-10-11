@@ -1,0 +1,8 @@
+/Users/melow_flare_098/Documents/Personal Project/Scope/rust/target/debug/build/target-lexicon-23b7cb22f6433ffb/build_script_build-23b7cb22f6433ffb.d: /Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/build.rs /Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/src/data_model.rs /Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/src/triple.rs /Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/src/targets.rs
+
+/Users/melow_flare_098/Documents/Personal Project/Scope/rust/target/debug/build/target-lexicon-23b7cb22f6433ffb/build_script_build-23b7cb22f6433ffb: /Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/build.rs /Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/src/data_model.rs /Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/src/triple.rs /Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/src/targets.rs
+
+/Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/build.rs:
+/Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/src/data_model.rs:
+/Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/src/triple.rs:
+/Users/melow_flare_098/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target-lexicon-0.12.16/src/targets.rs:
