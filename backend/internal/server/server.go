@@ -1,0 +1,182 @@
+package server
+
+import (
+	"scope-backend/internal/config"
+	"scope-backend/internal/services"
+	"scope-backend/internal/worker"
+
+	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/mongo"
+	"gorm.io/gorm"
+)
+
+type Server struct {
+	cfg             *config.Config
+	db              *gorm.DB
+	mongoDB         *mongo.Database
+	router          *gin.Engine
+	authService     *services.AuthService
+	taskDistributor *worker.TaskDistributor
+	marketService   *services.MarketService
+	newsService     *services.NewsService
+	redisClient     *redis.Client
+}
+
+func NewServer(cfg *config.Config, db *gorm.DB, mongoDB *mongo.Database, redisClient *redis.Client, taskDistributor *worker.TaskDistributor, authService *services.AuthService, marketService *services.MarketService, newsService *services.NewsService) *Server {
+	s := &Server{
+		cfg:             cfg,
+		db:              db,
+		mongoDB:         mongoDB,
+		redisClient:     redisClient,
+		taskDistributor: taskDistributor,
+		authService:     authService,
+		marketService:   marketService,
+		newsService:     newsService,
+		router:          gin.Default(),
+	}
+
+	s.SetupRoutes()
+	return s
+}
+
+func (s *Server) SetupRoutes() {
+	v1 := s.router.Group("/api/v1")
+	{
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/register", s.handleRegister)
+			auth.POST("/login", s.handleLogin)
+		}
+
+		market := v1.Group("/market")
+		{
+			market.GET("/price/:symbol", s.handleGetPrice)
+			market.GET("/orderbook/:symbol", s.handleGetOrderBook)
+		}
+
+		news := v1.Group("/news")
+		{
+			news.GET("/latest", s.handleGetLatestNews)
+			news.GET("/tags/:tag", s.handleGetNewsByTag)
+		}
+	}
+}
+
+func (s *Server) handleGetPrice(c *gin.Context) {
+	symbol := c.Param("symbol")
+	if s.marketService == nil {
+		c.JSON(503, gin.H{"error": "Market service unavailable"})
+		return
+	}
+
+	price, err := s.marketService.GetPrice(symbol)
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, price)
+}
+
+func (s *Server) handleGetOrderBook(c *gin.Context) {
+	symbol := c.Param("symbol")
+	if s.marketService == nil {
+		c.JSON(503, gin.H{"error": "Market service unavailable"})
+		return
+	}
+
+	book, err := s.marketService.GetOrderBook(symbol)
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, book)
+}
+
+func (s *Server) handleGetLatestNews(c *gin.Context) {
+	if s.newsService == nil {
+		c.JSON(503, gin.H{"error": "News service unavailable"})
+		return
+	}
+
+	news, err := s.newsService.GetLatestNews(c.Request.Context(), 20)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, news)
+}
+
+func (s *Server) handleGetNewsByTag(c *gin.Context) {
+	tag := c.Param("tag")
+	if s.newsService == nil {
+		c.JSON(503, gin.H{"error": "News service unavailable"})
+		return
+	}
+
+	news, err := s.newsService.GetNewsByTag(c.Request.Context(), tag, 20)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, news)
+}
+
+func (s *Server) handleRegister(c *gin.Context) {
+	var req struct {
+		Email    string `json:"email" binding:"required,email"`
+		Password string `json:"password" binding:"required,min=8"`
+		FullName string `json:"full_name" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if s.authService == nil {
+		c.JSON(503, gin.H{"error": "Database unavailable"})
+		return
+	}
+
+	user, err := s.authService.Register(req.Email, req.Password, req.FullName)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(201, gin.H{"id": user.ID, "email": user.Email})
+}
+
+func (s *Server) handleLogin(c *gin.Context) {
+	var req struct {
+		Email    string `json:"email" binding:"required,email"`
+		Password string `json:"password" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if s.authService == nil {
+		c.JSON(503, gin.H{"error": "Database unavailable"})
+		return
+	}
+
+	token, err := s.authService.Login(req.Email, req.Password)
+	if err != nil {
+		c.JSON(401, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"token": token})
+}
+
+func (s *Server) Run() error {
+	return s.router.Run(":" + s.cfg.Server.Port)
+}

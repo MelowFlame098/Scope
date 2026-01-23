@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # --- Databases ---
+  postgres:
+    image: postgres:15-alpine
+    container_name: scope_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: scope_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: scope_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  mongodb:
+    image: mongo:6-jammy
+    container_name: scope_mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongo_data:/data/db
+
+  # --- Application Services (Placeholders for local dev) ---
+  # backend:
+  #   build: ./backend
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "3000:3000"
+
+volumes:
+  postgres_data:
+  redis_data:
+  mongo_data:
