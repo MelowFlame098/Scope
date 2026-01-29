@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"scope-backend/internal/services"
 
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 )
 
-func StartWorkerServer(rdb *redis.Client) {
+func StartWorkerServer(rdb *redis.Client, tradingService *services.TradingService) {
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: rdb.Options().Addr},
 		asynq.Config{
@@ -26,6 +27,13 @@ func StartWorkerServer(rdb *redis.Client) {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(TypeEmailDelivery, HandleEmailDeliveryTask)
 	mux.HandleFunc(TypePortfolioUpdate, HandlePortfolioUpdateTask)
+	mux.HandleFunc(TypeAutomatedTrading, func(ctx context.Context, task *asynq.Task) error {
+		if tradingService == nil {
+			log.Println("TradingService is nil, skipping task")
+			return nil 
+		}
+		return tradingService.RunAutomatedStrategy(ctx)
+	})
 
 	if err := srv.Run(mux); err != nil {
 		log.Fatalf("could not run server: %v", err)

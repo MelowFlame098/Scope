@@ -15,6 +15,7 @@ type NewsArticle struct {
 	Title     string             `bson:"title" json:"title"`
 	Content   string             `bson:"content" json:"content"`
 	Source    string             `bson:"source" json:"source"`
+	URL       string             `bson:"url" json:"url"`
 	Timestamp time.Time          `bson:"timestamp" json:"timestamp"`
 	Sentiment float64            `bson:"sentiment" json:"sentiment"`
 	Tags      []string           `bson:"tags" json:"tags"`

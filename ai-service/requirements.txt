@@ -1,0 +1,9 @@
+pymongo
+textblob
+requests
+beautifulsoup4
+schedule
+yfinance
+finvizfinance
+lxml
+pandas

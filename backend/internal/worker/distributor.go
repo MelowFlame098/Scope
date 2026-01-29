@@ -11,9 +11,10 @@ import (
 
 // Task Types
 const (
-	TypeEmailDelivery   = "email:deliver"
-	TypePortfolioUpdate = "portfolio:update"
-	TypeDataIngestion   = "data:ingest"
+	TypeEmailDelivery    = "email:deliver"
+	TypePortfolioUpdate  = "portfolio:update"
+	TypeDataIngestion    = "data:ingest"
+	TypeAutomatedTrading = "trading:automated"
 )
 
 // Task Payloads
@@ -31,6 +32,7 @@ type PortfolioUpdatePayload struct {
 type TaskDistributorInterface interface {
 	DistributeTaskSendEmail(payload *EmailDeliveryPayload, opts ...asynq.Option) error
 	DistributeTaskPortfolioUpdate(payload *PortfolioUpdatePayload, opts ...asynq.Option) error
+	DistributeTaskAutomatedTrading(opts ...asynq.Option) error
 }
 
 type TaskDistributor struct {
@@ -49,14 +51,12 @@ func (distributor *TaskDistributor) DistributeTaskSendEmail(payload *EmailDelive
 	if err != nil {
 		return fmt.Errorf("failed to marshal task payload: %w", err)
 	}
-
 	task := asynq.NewTask(TypeEmailDelivery, jsonPayload, opts...)
 	info, err := distributor.client.Enqueue(task)
 	if err != nil {
 		return fmt.Errorf("failed to enqueue task: %w", err)
 	}
-
-	log.Printf("enqueued task: id=%s queue=%s", info.ID, info.Queue)
+	log.Printf("Enqueued task: id=%s queue=%s", info.ID, info.Queue)
 	return nil
 }
 
@@ -65,13 +65,21 @@ func (distributor *TaskDistributor) DistributeTaskPortfolioUpdate(payload *Portf
 	if err != nil {
 		return fmt.Errorf("failed to marshal task payload: %w", err)
 	}
-
 	task := asynq.NewTask(TypePortfolioUpdate, jsonPayload, opts...)
 	info, err := distributor.client.Enqueue(task)
 	if err != nil {
 		return fmt.Errorf("failed to enqueue task: %w", err)
 	}
+	log.Printf("Enqueued task: id=%s queue=%s", info.ID, info.Queue)
+	return nil
+}
 
-	log.Printf("enqueued task: id=%s queue=%s", info.ID, info.Queue)
+func (distributor *TaskDistributor) DistributeTaskAutomatedTrading(opts ...asynq.Option) error {
+	task := asynq.NewTask(TypeAutomatedTrading, nil, opts...)
+	info, err := distributor.client.Enqueue(task)
+	if err != nil {
+		return fmt.Errorf("failed to enqueue task: %w", err)
+	}
+	log.Printf("Enqueued automated trading task: id=%s queue=%s", info.ID, info.Queue)
 	return nil
 }

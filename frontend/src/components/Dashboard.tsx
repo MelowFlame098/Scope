@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { getPrice } from '../api/client';
 import StockChart from './StockChart';
+import ScreenerWidget from './ScreenerWidget';
+import InsiderWidget from './InsiderWidget';
+import SectorHeatmap from './SectorHeatmap';
 
 interface PriceData {
   symbol: string;
@@ -57,8 +60,17 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      <div style={{ border: '1px solid #ccc', padding: '20px', borderRadius: '8px' }}>
-        <StockChart data={chartData} symbol="AAPL" />
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginBottom: '20px' }}>
+        <div style={{ border: '1px solid #ccc', padding: '20px', borderRadius: '8px' }}>
+            <h3 style={{ marginTop: 0 }}>AAPL Live Chart</h3>
+            <StockChart data={chartData} symbol="AAPL" />
+        </div>
+        <ScreenerWidget />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <InsiderWidget />
+        <SectorHeatmap />
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ import (
 	"scope-backend/internal/services"
 	"scope-backend/internal/worker"
 
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,10 +22,13 @@ type Server struct {
 	taskDistributor *worker.TaskDistributor
 	marketService   *services.MarketService
 	newsService     *services.NewsService
+	screenerService *services.ScreenerService
+	insiderService  *services.InsiderService
+	sectorService   *services.SectorService
 	redisClient     *redis.Client
 }
 
-func NewServer(cfg *config.Config, db *gorm.DB, mongoDB *mongo.Database, redisClient *redis.Client, taskDistributor *worker.TaskDistributor, authService *services.AuthService, marketService *services.MarketService, newsService *services.NewsService) *Server {
+func NewServer(cfg *config.Config, db *gorm.DB, mongoDB *mongo.Database, redisClient *redis.Client, taskDistributor *worker.TaskDistributor, authService *services.AuthService, marketService *services.MarketService, newsService *services.NewsService, screenerService *services.ScreenerService, insiderService *services.InsiderService, sectorService *services.SectorService) *Server {
 	s := &Server{
 		cfg:             cfg,
 		db:              db,
@@ -33,6 +38,9 @@ func NewServer(cfg *config.Config, db *gorm.DB, mongoDB *mongo.Database, redisCl
 		authService:     authService,
 		marketService:   marketService,
 		newsService:     newsService,
+		screenerService: screenerService,
+		insiderService:  insiderService,
+		sectorService:   sectorService,
 		router:          gin.Default(),
 	}
 
@@ -59,6 +67,21 @@ func (s *Server) SetupRoutes() {
 		{
 			news.GET("/latest", s.handleGetLatestNews)
 			news.GET("/tags/:tag", s.handleGetNewsByTag)
+		}
+
+		screener := v1.Group("/screener")
+		{
+			screener.GET("/", s.handleGetScreenerResults)
+		}
+
+		insider := v1.Group("/insider")
+		{
+			insider.GET("/", s.handleGetInsiderTrades)
+		}
+
+		sector := v1.Group("/sector")
+		{
+			sector.GET("/", s.handleGetSectorPerformance)
 		}
 	}
 }
@@ -101,7 +124,13 @@ func (s *Server) handleGetLatestNews(c *gin.Context) {
 		return
 	}
 
-	news, err := s.newsService.GetLatestNews(c.Request.Context(), 20)
+	limitStr := c.DefaultQuery("limit", "20")
+	limit, err := strconv.ParseInt(limitStr, 10, 64)
+	if err != nil {
+		limit = 20
+	}
+
+	news, err := s.newsService.GetLatestNews(c.Request.Context(), limit)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -175,6 +204,64 @@ func (s *Server) handleLogin(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"token": token})
+}
+
+func (s *Server) handleGetScreenerResults(c *gin.Context) {
+	if s.screenerService == nil {
+		c.JSON(503, gin.H{"error": "Screener service unavailable"})
+		return
+	}
+
+	strategy := c.Query("strategy")
+	limitStr := c.DefaultQuery("limit", "50")
+	limit, err := strconv.ParseInt(limitStr, 10, 64)
+	if err != nil {
+		limit = 50
+	}
+
+	results, err := s.screenerService.GetScreenerResults(c.Request.Context(), strategy, limit)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, results)
+}
+
+func (s *Server) handleGetInsiderTrades(c *gin.Context) {
+	if s.insiderService == nil {
+		c.JSON(503, gin.H{"error": "Insider service unavailable"})
+		return
+	}
+
+	limitStr := c.DefaultQuery("limit", "50")
+	limit, err := strconv.ParseInt(limitStr, 10, 64)
+	if err != nil {
+		limit = 50
+	}
+
+	trades, err := s.insiderService.GetInsiderTrades(c.Request.Context(), limit)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, trades)
+}
+
+func (s *Server) handleGetSectorPerformance(c *gin.Context) {
+	if s.sectorService == nil {
+		c.JSON(503, gin.H{"error": "Sector service unavailable"})
+		return
+	}
+
+	performance, err := s.sectorService.GetSectorPerformance(c.Request.Context())
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, performance)
 }
 
 func (s *Server) Run() error {
