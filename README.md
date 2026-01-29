@@ -1,7 +1,7 @@
-# Scope - Financial Analysis Platform
+# Scope - Financial Analysis Platform 
 
 ## Overview
-Scope is a comprehensive financial analysis platform combining real-time stock tracking, AI-driven news summarization, and quantitative modeling.
+Scope is a comprehensive financial analysis platform combining real-time stock tracking, AI-driven news summarization, and quantitative modeling. Utilising upto ate research based models and strategies.
 
 ## Development Plan
 
