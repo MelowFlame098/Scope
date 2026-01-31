@@ -61,6 +61,7 @@ func (s *Server) SetupRoutes() {
 		{
 			market.GET("/price/:symbol", s.handleGetPrice)
 			market.GET("/orderbook/:symbol", s.handleGetOrderBook)
+			market.GET("/movers", s.handleGetMovers)
 		}
 
 		news := v1.Group("/news")
@@ -116,6 +117,33 @@ func (s *Server) handleGetOrderBook(c *gin.Context) {
 	}
 
 	c.JSON(200, book)
+}
+
+func (s *Server) handleGetMovers(c *gin.Context) {
+	if s.marketService == nil {
+		c.JSON(503, gin.H{"error": "Market service unavailable"})
+		return
+	}
+
+	limitStr := c.DefaultQuery("limit", "6")
+	limit, _ := strconv.ParseInt(limitStr, 10, 64)
+
+	top, err := s.marketService.GetTopMovers(limit)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	worst, err := s.marketService.GetWorstMovers(limit)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"top":   top,
+		"worst": worst,
+	})
 }
 
 func (s *Server) handleGetLatestNews(c *gin.Context) {

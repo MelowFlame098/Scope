@@ -18,48 +18,61 @@ const Navbar: React.FC = () => {
       justifyContent: 'space-between',
       alignItems: 'center',
       padding: '1rem 2rem',
-      backgroundColor: '#333',
+      backgroundColor: 'rgba(20, 20, 20, 0.8)', // Semi-transparent black
+      backdropFilter: 'blur(12px)',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
       color: '#fff',
-      marginBottom: '20px'
+      marginBottom: '20px',
+      position: 'sticky',
+      top: 0,
+      zIndex: 100
     }}>
       <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-        <Link to="/" style={{ color: '#fff', textDecoration: 'none' }}>Scope</Link>
+        <Link to="/" style={{ color: '#8b5cf6', textDecoration: 'none' }}>Scope</Link>
       </div>
       <ul style={{
         display: 'flex',
         listStyle: 'none',
         margin: 0,
         padding: 0,
-        gap: '20px',
+        gap: '24px',
         alignItems: 'center'
       }}>
         <li>
-          <Link to="/" style={{ color: '#fff', textDecoration: 'none' }}>Dashboard</Link>
+          <Link to="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>Dashboard</Link>
         </li>
         {!token ? (
           <>
             <li>
-              <Link to="/login" style={{ color: '#fff', textDecoration: 'none' }}>Login</Link>
+              <Link to="/login" style={{ color: '#a1a1aa', textDecoration: 'none' }}>Login</Link>
             </li>
             <li>
-              <Link to="/register" style={{ color: '#fff', textDecoration: 'none' }}>Register</Link>
+              <Link to="/register" style={{ 
+                backgroundColor: '#8b5cf6', 
+                color: '#fff', 
+                padding: '8px 16px', 
+                borderRadius: '6px', 
+                textDecoration: 'none',
+                fontWeight: 500
+              }}>Register</Link>
             </li>
           </>
         ) : (
           <>
-            <li style={{ color: '#ccc', fontSize: '0.9rem' }}>
+            <li style={{ color: '#a1a1aa', fontSize: '0.9rem' }}>
               {userEmail}
             </li>
             <li>
               <button 
                 onClick={handleLogout}
                 style={{
-                  background: 'none',
-                  border: '1px solid #fff',
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.2)',
                   color: '#fff',
-                  padding: '5px 10px',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
                 }}
               >
                 Logout

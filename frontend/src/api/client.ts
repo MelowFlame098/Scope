@@ -36,6 +36,13 @@ export interface ScreenerResult {
   price: string;
   change: string;
   volume: string;
+  dividend_yield: string;
+  eps: string;
+  revenue: string;
+  debt: string;
+  roe: string;
+  profit_margin: string;
+  book_value: string;
   strategy: string;
   fetched_at: string;
 }
@@ -71,6 +78,11 @@ export const getPrice = async (symbol: string): Promise<PriceData> => {
   return response.data;
 };
 
+export const getMarketMovers = async () => {
+  const response = await client.get('/market/movers');
+  return response.data;
+};
+
 export const getLatestNews = async (limit: number = 10): Promise<NewsArticle[]> => {
   const response = await client.get(`/news/latest?limit=${limit}`);
   return response.data;
@@ -88,6 +100,17 @@ export const getInsiderTrades = async (limit: number = 50): Promise<InsiderTrade
 
 export const getSectorPerformance = async (): Promise<SectorPerformance[]> => {
   const response = await client.get(`/sector/`);
+  return response.data;
+};
+
+// Auth API
+export const login = async (credentials: any) => {
+  const response = await client.post('/auth/login', credentials);
+  return response.data;
+};
+
+export const register = async (userData: any) => {
+  const response = await client.post('/auth/register', userData);
   return response.data;
 };
 

@@ -11,19 +11,26 @@ import (
 )
 
 type ScreenerResult struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Ticker    string             `bson:"Ticker" json:"ticker"`
-	Company   string             `bson:"Company" json:"company"`
-	Sector    string             `bson:"Sector" json:"sector"`
-	Industry  string             `bson:"Industry" json:"industry"`
-	Country   string             `bson:"Country" json:"country"`
-	MarketCap string             `bson:"Market Cap" json:"market_cap"`
-	PE        string             `bson:"P/E" json:"pe"`
-	Price     string             `bson:"Price" json:"price"`
-	Change    string             `bson:"Change" json:"change"`
-	Volume    string             `bson:"Volume" json:"volume"`
-	Strategy  string             `bson:"strategy" json:"strategy"`
-	FetchedAt time.Time          `bson:"fetched_at" json:"fetched_at"`
+	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Ticker        string             `bson:"Ticker" json:"ticker"`
+	Company       string             `bson:"Company" json:"company"`
+	Sector        string             `bson:"Sector" json:"sector"`
+	Industry      string             `bson:"Industry" json:"industry"`
+	Country       string             `bson:"Country" json:"country"`
+	MarketCap     string             `bson:"Market Cap" json:"market_cap"`
+	PE            string             `bson:"P/E" json:"pe"`
+	Price         string             `bson:"Price" json:"price"`
+	Change        string             `bson:"Change" json:"change"`
+	Volume        string             `bson:"Volume" json:"volume"`
+	DividendYield string             `bson:"Dividend Yield" json:"dividend_yield"`
+	EPS           string             `bson:"EPS (ttm)" json:"eps"`
+	Revenue       string             `bson:"Sales" json:"revenue"`
+	Debt          string             `bson:"Total Debt/Eq" json:"debt"` // Using Debt/Eq as proxy or actual Debt if available
+	ROE           string             `bson:"ROE" json:"roe"`
+	ProfitMargin  string             `bson:"Profit Margin" json:"profit_margin"`
+	BookValue     string             `bson:"P/B" json:"book_value"` // P/B is Price/Book, close enough or maybe Book/sh
+	Strategy      string             `bson:"strategy" json:"strategy"`
+	FetchedAt     time.Time          `bson:"fetched_at" json:"fetched_at"`
 }
 
 type ScreenerService struct {
@@ -41,10 +48,10 @@ func (s *ScreenerService) GetScreenerResults(ctx context.Context, strategy strin
 	if strategy != "" {
 		filter["strategy"] = strategy
 	}
-	
+
 	// Sort by fetched_at desc to get latest batch
 	opts := options.Find().SetSort(bson.D{{Key: "fetched_at", Value: -1}}).SetLimit(limit)
-	
+
 	cursor, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err

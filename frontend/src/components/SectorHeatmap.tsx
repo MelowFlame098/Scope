@@ -21,7 +21,7 @@ const SectorHeatmap: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <div>Loading Sectors...</div>;
+    return <div style={{ color: '#a1a1aa' }}>Loading Sectors...</div>;
   }
 
   // Helper to parse percentage string like "1.50%" or "-0.23%"
@@ -31,16 +31,16 @@ const SectorHeatmap: React.FC = () => {
 
   // Helper to get color based on change
   const getColor = (change: number) => {
-    if (change > 2) return '#006400'; // Dark Green
-    if (change > 0) return '#32CD32'; // Lime Green
-    if (change === 0) return '#808080'; // Grey
-    if (change > -2) return '#FF6347'; // Tomato
-    return '#8B0000'; // Dark Red
+    if (change > 2) return '#059669'; // Emerald-600
+    if (change > 0) return '#10b981'; // Emerald-500
+    if (change === 0) return '#52525b'; // Zinc-600
+    if (change > -2) return '#ef4444'; // Red-500
+    return '#b91c1c'; // Red-700
   };
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '8px', height: '300px', overflowY: 'auto' }}>
-      <h3>Sector Performance</h3>
+    <div style={{ height: '100%', overflowY: 'auto' }}>
+      <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#fff' }}>Sector Performance</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
         {sectors.map((sector) => {
           const changeVal = getChangeValue(sector.change);
@@ -48,21 +48,26 @@ const SectorHeatmap: React.FC = () => {
           
           return (
             <div 
-              key={sector.id} 
-              style={{ 
-                backgroundColor: color, 
-                color: 'white', 
-                padding: '10px', 
-                borderRadius: '4px',
-                textAlign: 'center',
+              key={sector.id}
+              style={{
+                backgroundColor: color,
+                color: '#fff',
+                padding: '12px',
+                borderRadius: '8px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
-                minHeight: '80px'
+                alignItems: 'center',
+                textAlign: 'center',
+                height: '80px',
+                transition: 'transform 0.2s',
+                cursor: 'default'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
-              <div style={{ fontWeight: 'bold', fontSize: '0.9em', marginBottom: '5px' }}>{sector.name}</div>
-              <div style={{ fontSize: '1.1em' }}>{sector.change}</div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 500, marginBottom: '4px' }}>{sector.name}</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{sector.change}</div>
             </div>
           );
         })}

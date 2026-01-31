@@ -4,13 +4,15 @@ import Dashboard from './components/Dashboard';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 import Register from './components/Register';
+import StockBackground from './components/StockBackground';
 
 const App: React.FC = () => {
   return (
     <Router>
       <div className="App">
+        <StockBackground />
         <Navbar />
-        <div style={{ padding: '20px' }}>
+        <div style={{ position: 'relative', zIndex: 1 }}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/login" element={<Login />} />

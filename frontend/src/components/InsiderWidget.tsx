@@ -21,37 +21,38 @@ const InsiderWidget: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <div>Loading Insider Trades...</div>;
+    return <div style={{ color: '#a1a1aa' }}>Loading Insider Trades...</div>;
   }
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '8px', height: '300px', overflowY: 'auto' }}>
-      <h3>Insider Activity</h3>
+    <div style={{ height: '100%', overflowY: 'auto' }}>
+      <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#fff' }}>Insider Activity</h3>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em' }}>
         <thead>
-          <tr style={{ textAlign: 'left', borderBottom: '1px solid #eee' }}>
-            <th>Ticker</th>
-            <th>Owner</th>
-            <th>Trans</th>
-            <th>Value</th>
-            <th>Date</th>
+          <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <th style={{ color: '#a1a1aa', padding: '8px 0' }}>Ticker</th>
+            <th style={{ color: '#a1a1aa', padding: '8px 0' }}>Owner</th>
+            <th style={{ color: '#a1a1aa', padding: '8px 0' }}>Trans</th>
+            <th style={{ color: '#a1a1aa', padding: '8px 0' }}>Value</th>
+            <th style={{ color: '#a1a1aa', padding: '8px 0' }}>Date</th>
           </tr>
         </thead>
         <tbody>
           {trades.map((trade) => (
-            <tr key={trade.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
-              <td style={{ padding: '8px 0', fontWeight: 'bold' }}>{trade.ticker}</td>
-              <td style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={trade.owner}>
+            <tr key={trade.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <td style={{ padding: '12px 0', fontWeight: 'bold', color: '#fff' }}>{trade.ticker}</td>
+              <td style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '12px 0', color: '#a1a1aa' }} title={trade.owner}>
                 {trade.owner}
               </td>
               <td style={{ 
-                color: trade.transaction.toLowerCase().includes('buy') ? 'green' : 'red',
+                padding: '12px 0',
+                color: trade.transaction.toLowerCase().includes('buy') ? '#10b981' : '#ef4444',
                 fontWeight: 'bold' 
               }}>
                 {trade.transaction}
               </td>
-              <td>{trade.value}</td>
-              <td style={{ color: '#666' }}>{trade.date}</td>
+              <td style={{ padding: '12px 0', color: '#fff' }}>{trade.value}</td>
+              <td style={{ padding: '12px 0', color: '#a1a1aa' }}>{trade.date}</td>
             </tr>
           ))}
         </tbody>

@@ -25,42 +25,87 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
-      <h2>Register</h2>
-      {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
+    <div className="glass-card" style={{ maxWidth: '400px', margin: '100px auto', padding: '2rem' }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#fff' }}>Create Account</h2>
+      {error && <div style={{ color: '#ef4444', marginBottom: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>{error}</div>}
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Username:</label>
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', color: '#a1a1aa', fontSize: '0.9rem' }}>Username</label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+            style={{ 
+              width: '100%', 
+              padding: '0.75rem', 
+              backgroundColor: 'rgba(0,0,0,0.2)',
+              border: '1px solid #3f3f46',
+              borderRadius: '6px',
+              color: '#fff',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Choose a username"
             required
           />
         </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Email:</label>
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', color: '#a1a1aa', fontSize: '0.9rem' }}>Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+            style={{ 
+              width: '100%', 
+              padding: '0.75rem', 
+              backgroundColor: 'rgba(0,0,0,0.2)',
+              border: '1px solid #3f3f46',
+              borderRadius: '6px',
+              color: '#fff',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Enter your email"
             required
           />
         </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Password:</label>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', color: '#a1a1aa', fontSize: '0.9rem' }}>Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+            style={{ 
+              width: '100%', 
+              padding: '0.75rem', 
+              backgroundColor: 'rgba(0,0,0,0.2)',
+              border: '1px solid #3f3f46',
+              borderRadius: '6px',
+              color: '#fff',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Choose a password"
             required
           />
         </div>
-        <button type="submit" style={{ width: '100%', padding: '10px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-          Register
+        <button 
+          type="submit" 
+          style={{ 
+            width: '100%', 
+            padding: '0.75rem', 
+            backgroundColor: '#8b5cf6', 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: '6px', 
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#7c3aed'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#8b5cf6'}
+        >
+          Sign Up
         </button>
       </form>
     </div>

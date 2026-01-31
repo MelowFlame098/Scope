@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { getPrice } from '../api/client';
 import StockChart from './StockChart';
-import ScreenerWidget from './ScreenerWidget';
 import InsiderWidget from './InsiderWidget';
 import SectorHeatmap from './SectorHeatmap';
+import MarketOverview from './MarketOverview';
+import FinancialFundamentals from './FinancialFundamentals';
 
 interface PriceData {
   symbol: string;
@@ -12,31 +13,24 @@ interface PriceData {
 }
 
 const Dashboard: React.FC = () => {
-  const [prices, setPrices] = useState<Record<string, PriceData>>({});
   const [chartData, setChartData] = useState<any[]>([]);
-  const symbols = ['AAPL', 'GOOGL', 'TSLA', 'MSFT', 'AMZN'];
+  // We'll keep one symbol for the main chart for now
+  const chartSymbol = 'AAPL'; 
 
   useEffect(() => {
     const fetchData = async () => {
-      const newPrices: Record<string, PriceData> = {};
       const now = new Date().toLocaleTimeString();
 
-      for (const symbol of symbols) {
-        try {
-          const data = await getPrice(symbol);
-          newPrices[symbol] = data;
-          
-          if (symbol === 'AAPL') {
-            setChartData(prev => [
-              ...prev.slice(-19), // Keep last 20 points
-              { timestamp: now, price: parseFloat(data.price) }
-            ]);
-          }
-        } catch (error) {
-          console.error(`Failed to fetch price for ${symbol}`, error);
-        }
+      try {
+        const data = await getPrice(chartSymbol);
+        
+        setChartData(prev => [
+          ...prev.slice(-19), // Keep last 20 points
+          { timestamp: now, price: parseFloat(data.price) }
+        ]);
+      } catch (error) {
+        console.error(`Failed to fetch price for ${chartSymbol}`, error);
       }
-      setPrices(newPrices);
     };
 
     fetchData();
@@ -46,30 +40,34 @@ const Dashboard: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Scope Financial Dashboard</h1>
+    <div className="dashboard-grid">
+      <div style={{ gridColumn: '1 / -1', marginBottom: '1rem' }}>
+        <h1 style={{ background: 'linear-gradient(to right, #fff, #a1a1aa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          Scope Financial Dashboard
+        </h1>
+      </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
-        {symbols.map(symbol => (
-          <div key={symbol} style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '8px' }}>
-            <h3>{symbol}</h3>
-            <p style={{ fontSize: '24px', fontWeight: 'bold' }}>
-              ${prices[symbol]?.price ? parseFloat(prices[symbol].price).toFixed(2) : 'Loading...'}
-            </p>
-          </div>
-        ))}
+      {/* Market Overview (Indices & Movers) */}
+      <MarketOverview />
+
+      {/* Main Chart Area */}
+      <div className="glass-card" style={{ gridColumn: '1 / -1', minHeight: '400px' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '20px' }}>{chartSymbol} Live Chart</h3>
+          <StockChart data={chartData} symbol={chartSymbol} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginBottom: '20px' }}>
-        <div style={{ border: '1px solid #ccc', padding: '20px', borderRadius: '8px' }}>
-            <h3 style={{ marginTop: 0 }}>AAPL Live Chart</h3>
-            <StockChart data={chartData} symbol="AAPL" />
-        </div>
-        <ScreenerWidget />
+      {/* Financial Fundamentals & Screener (Combined) */}
+      <div className="glass-card" style={{ gridColumn: '1 / -1', minHeight: '600px', overflow: 'hidden' }}>
+        <FinancialFundamentals />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      {/* Insider Widget */}
+      <div className="glass-card" style={{ gridColumn: 'span 6', minHeight: '300px' }}>
         <InsiderWidget />
+      </div>
+
+      {/* Sector Heatmap */}
+      <div className="glass-card" style={{ gridColumn: 'span 6', minHeight: '300px' }}>
         <SectorHeatmap />
       </div>
     </div>
