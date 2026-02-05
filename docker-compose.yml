@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # --- Databases ---
   postgres:
@@ -53,6 +51,14 @@ services:
       - DATABASE_SSLMODE=disable
       - MONGO_URI=mongodb://user:password@mongodb:27017
       - REDIS_ADDR=redis:6379
+
+  ai-service:
+    build: ./ai-service
+    container_name: scope_ai_service
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://user:password@mongodb:27017
 
   frontend:
     build: ./frontend

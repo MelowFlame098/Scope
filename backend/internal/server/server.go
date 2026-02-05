@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"scope-backend/internal/config"
 	"scope-backend/internal/services"
 	"scope-backend/internal/worker"
@@ -44,8 +45,26 @@ func NewServer(cfg *config.Config, db *gorm.DB, mongoDB *mongo.Database, redisCl
 		router:          gin.Default(),
 	}
 
+	// Add CORS middleware
+	s.router.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	})
+
 	s.SetupRoutes()
 	return s
+}
+
+func (s *Server) Run(addr string) error {
+	return s.router.Run(addr)
 }
 
 func (s *Server) SetupRoutes() {
@@ -62,6 +81,7 @@ func (s *Server) SetupRoutes() {
 			market.GET("/price/:symbol", s.handleGetPrice)
 			market.GET("/orderbook/:symbol", s.handleGetOrderBook)
 			market.GET("/movers", s.handleGetMovers)
+			market.GET("/candles/:symbol", s.handleGetCandles)
 		}
 
 		news := v1.Group("/news")
@@ -144,6 +164,24 @@ func (s *Server) handleGetMovers(c *gin.Context) {
 		"top":   top,
 		"worst": worst,
 	})
+}
+
+func (s *Server) handleGetCandles(c *gin.Context) {
+	symbol := c.Param("symbol")
+	timeframe := c.DefaultQuery("timeframe", "5m")
+
+	if s.marketService == nil {
+		c.JSON(503, gin.H{"error": "Market service unavailable"})
+		return
+	}
+
+	candles, err := s.marketService.GetCandles(symbol, timeframe)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, candles)
 }
 
 func (s *Server) handleGetLatestNews(c *gin.Context) {
@@ -270,6 +308,7 @@ func (s *Server) handleGetInsiderTrades(c *gin.Context) {
 
 	trades, err := s.insiderService.GetInsiderTrades(c.Request.Context(), limit)
 	if err != nil {
+		log.Printf("Insider Error: %v", err)
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -283,15 +322,12 @@ func (s *Server) handleGetSectorPerformance(c *gin.Context) {
 		return
 	}
 
-	performance, err := s.sectorService.GetSectorPerformance(c.Request.Context())
+	results, err := s.sectorService.GetSectorPerformance(c.Request.Context())
 	if err != nil {
+		log.Printf("Sector Error: %v", err)
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, performance)
-}
-
-func (s *Server) Run() error {
-	return s.router.Run(":" + s.cfg.Server.Port)
+	c.JSON(200, results)
 }

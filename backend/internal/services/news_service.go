@@ -45,7 +45,7 @@ func (s *NewsService) GetLatestNews(ctx context.Context, limit int64) ([]NewsArt
 	}
 	defer cursor.Close(ctx)
 
-	var articles []NewsArticle
+	articles := []NewsArticle{}
 	if err := cursor.All(ctx, &articles); err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (s *NewsService) GetNewsByTag(ctx context.Context, tag string, limit int64)
 	}
 	defer cursor.Close(ctx)
 
-	var articles []NewsArticle
+	articles := []NewsArticle{}
 	if err := cursor.All(ctx, &articles); err != nil {
 		return nil, err
 	}

@@ -31,7 +31,7 @@ func main() {
 	}
 
 	// Initialize Redis
-	rdb := database.ConnectRedis()
+	rdb := database.ConnectRedis(cfg.Redis)
 
 	// Initialize Repositories and Services
 	var authService *services.AuthService
@@ -90,7 +90,7 @@ func main() {
 
 	// Initialize HTTP Server
 	server := server.NewServer(cfg, db, mongoDB, rdb, taskDistributor, authService, marketService, newsService, screenerService, insiderService, sectorService)
-	if err := server.Run(); err != nil {
+	if err := server.Run(":" + cfg.Server.Port); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
 	}
 }

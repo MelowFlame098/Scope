@@ -58,7 +58,7 @@ func (s *ScreenerService) GetScreenerResults(ctx context.Context, strategy strin
 	}
 	defer cursor.Close(ctx)
 
-	var results []ScreenerResult
+	results := []ScreenerResult{}
 	if err := cursor.All(ctx, &results); err != nil {
 		return nil, err
 	}

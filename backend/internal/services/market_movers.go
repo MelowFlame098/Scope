@@ -55,7 +55,7 @@ func (s *MarketService) getMoversFromCache(limit int64, descending bool) ([]Stoc
 }
 
 func (s *MarketService) getPricesForSymbols(symbols []string) ([]StockPrice, error) {
-	var prices []StockPrice
+	prices := []StockPrice{}
 
 	// Pipeline the GET requests for efficiency
 	pipe := s.redisClient.Pipeline()

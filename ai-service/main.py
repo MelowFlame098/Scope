@@ -6,8 +6,10 @@ from app.insider import InsiderModule
 from app.sector import SectorModule
 from app.news import NewsModule
 
+import os
+
 # Configuration
-MONGO_URI = "mongodb://user:password@localhost:27017"
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://user:password@localhost:27017")
 DB_NAME = "scope_mongo"
 
 class AIService:

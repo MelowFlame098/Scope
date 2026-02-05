@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const client = axios.create({
-  baseURL: 'http://localhost:8080/api/v1',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -54,10 +54,10 @@ export interface InsiderTrade {
   relationship: string;
   date: string;
   transaction: string;
-  cost: string;
-  shares: string;
-  value: string;
-  total_shares: string;
+  cost: number;
+  shares: number;
+  value: number;
+  total_shares: number;
   sec_form_4: string;
   fetched_at: string;
 }
@@ -65,13 +65,26 @@ export interface InsiderTrade {
 export interface SectorPerformance {
   id: string;
   name: string;
-  change: string;
-  volume: string;
+  change: number;
+  volume: number;
   stocks: string;
-  market_cap: string;
-  pe: string;
+  market_cap: number;
+  pe: number;
   fetched_at: string;
 }
+
+export interface Candle {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+export const getStockCandles = async (symbol: string, timeframe: string): Promise<Candle[]> => {
+  const response = await client.get(`/market/candles/${symbol}?timeframe=${timeframe}`);
+  return response.data || [];
+};
 
 export const getPrice = async (symbol: string): Promise<PriceData> => {
   const response = await client.get(`/market/price/${symbol}`);
@@ -85,22 +98,22 @@ export const getMarketMovers = async () => {
 
 export const getLatestNews = async (limit: number = 10): Promise<NewsArticle[]> => {
   const response = await client.get(`/news/latest?limit=${limit}`);
-  return response.data;
+  return response.data || [];
 };
 
 export const getScreenerResults = async (strategy: string = '', limit: number = 50): Promise<ScreenerResult[]> => {
   const response = await client.get(`/screener/?strategy=${strategy}&limit=${limit}`);
-  return response.data;
+  return response.data || [];
 };
 
 export const getInsiderTrades = async (limit: number = 50): Promise<InsiderTrade[]> => {
   const response = await client.get(`/insider/?limit=${limit}`);
-  return response.data;
+  return response.data || [];
 };
 
 export const getSectorPerformance = async (): Promise<SectorPerformance[]> => {
   const response = await client.get(`/sector/`);
-  return response.data;
+  return response.data || [];
 };
 
 // Auth API

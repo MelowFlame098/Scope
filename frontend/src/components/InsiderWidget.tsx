@@ -51,7 +51,9 @@ const InsiderWidget: React.FC = () => {
               }}>
                 {trade.transaction}
               </td>
-              <td style={{ padding: '12px 0', color: '#fff' }}>{trade.value}</td>
+              <td style={{ padding: '12px 0', color: '#fff' }}>
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(trade.value)}
+              </td>
               <td style={{ padding: '12px 0', color: '#a1a1aa' }}>{trade.date}</td>
             </tr>
           ))}

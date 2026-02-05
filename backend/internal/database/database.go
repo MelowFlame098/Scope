@@ -23,9 +23,11 @@ func ConnectDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	return db, nil
 }
 
-func ConnectRedis() *redis.Client {
+func ConnectRedis(cfg config.RedisConfig) *redis.Client {
 	// In production, use config
 	return redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr:     cfg.Addr,
+		Password: cfg.Password,
+		DB:       cfg.DB,
 	})
 }

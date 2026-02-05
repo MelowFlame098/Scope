@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -10,6 +11,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Mongo    MongoConfig
+	Redis    RedisConfig
 }
 
 type ServerConfig struct {
@@ -30,11 +32,18 @@ type MongoConfig struct {
 	Database string
 }
 
+type RedisConfig struct {
+	Addr     string
+	Password string
+	DB       int
+}
+
 func LoadConfig() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	// Defaults
@@ -49,6 +58,11 @@ func LoadConfig() (*Config, error) {
 	// Mongo Defaults
 	viper.SetDefault("mongo.uri", "mongodb://user:password@localhost:27017")
 	viper.SetDefault("mongo.database", "scope_mongo")
+
+	// Redis Defaults
+	viper.SetDefault("redis.addr", "localhost:6379")
+	viper.SetDefault("redis.password", "")
+	viper.SetDefault("redis.db", 0)
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {

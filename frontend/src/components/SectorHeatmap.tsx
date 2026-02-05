@@ -24,11 +24,6 @@ const SectorHeatmap: React.FC = () => {
     return <div style={{ color: '#a1a1aa' }}>Loading Sectors...</div>;
   }
 
-  // Helper to parse percentage string like "1.50%" or "-0.23%"
-  const getChangeValue = (changeStr: string) => {
-    return parseFloat(changeStr.replace('%', ''));
-  };
-
   // Helper to get color based on change
   const getColor = (change: number) => {
     if (change > 2) return '#059669'; // Emerald-600
@@ -43,7 +38,7 @@ const SectorHeatmap: React.FC = () => {
       <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#fff' }}>Sector Performance</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
         {sectors.map((sector) => {
-          const changeVal = getChangeValue(sector.change);
+          const changeVal = sector.change;
           const color = getColor(changeVal);
           
           return (
@@ -67,7 +62,7 @@ const SectorHeatmap: React.FC = () => {
               onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
               <div style={{ fontSize: '0.8rem', fontWeight: 500, marginBottom: '4px' }}>{sector.name}</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{sector.change}</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{changeVal.toFixed(2)}%</div>
             </div>
           );
         })}
