@@ -34,38 +34,40 @@ const SectorHeatmap: React.FC = () => {
   };
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto' }}>
-      <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#fff' }}>Sector Performance</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
-        {sectors.map((sector) => {
-          const changeVal = sector.change;
-          const color = getColor(changeVal);
-          
-          return (
-            <div 
-              key={sector.id}
-              style={{
-                backgroundColor: color,
-                color: '#fff',
-                padding: '12px',
-                borderRadius: '8px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                textAlign: 'center',
-                height: '80px',
-                transition: 'transform 0.2s',
-                cursor: 'default'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              <div style={{ fontSize: '0.8rem', fontWeight: 500, marginBottom: '4px' }}>{sector.name}</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{changeVal.toFixed(2)}%</div>
-            </div>
-          );
-        })}
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#fff', flexShrink: 0 }}>Sector Performance</h3>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '8px' }}>
+          {sectors.map((sector) => {
+            const changeVal = sector.change;
+            const color = getColor(changeVal);
+            
+            return (
+              <div 
+                key={sector.id}
+                style={{
+                  backgroundColor: color,
+                  color: '#fff',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  height: '70px',
+                  transition: 'transform 0.2s',
+                  cursor: 'default'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                <div style={{ fontSize: '0.75rem', fontWeight: 500, marginBottom: '2px', lineHeight: '1.2' }}>{sector.name}</div>
+                <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>{changeVal.toFixed(2)}%</div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

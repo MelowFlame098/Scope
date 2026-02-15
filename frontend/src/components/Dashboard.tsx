@@ -26,18 +26,18 @@ const Dashboard: React.FC = () => {
           <StockChart symbol={chartSymbol} />
       </div>
 
-      {/* Financial Fundamentals & Screener (Combined) */}
-      <div className="glass-card" style={{ gridColumn: '1 / -1', minHeight: '600px', overflow: 'hidden' }}>
-        <FinancialFundamentals />
+      {/* Financial Fundamentals */}
+      <div className="glass-card" style={{ gridColumn: '1 / -1', minHeight: '320px', overflow: 'hidden' }}>
+        <FinancialFundamentals symbol={chartSymbol} />
       </div>
 
       {/* Insider Widget */}
-      <div className="glass-card" style={{ gridColumn: 'span 6', minHeight: '300px' }}>
+      <div className="glass-card" style={{ gridColumn: 'span 6', height: '250px', overflow: 'hidden' }}>
         <InsiderWidget />
       </div>
 
       {/* Sector Heatmap */}
-      <div className="glass-card" style={{ gridColumn: 'span 6', minHeight: '300px' }}>
+      <div className="glass-card" style={{ gridColumn: 'span 6', height: '250px', overflow: 'hidden' }}>
         <SectorHeatmap />
       </div>
     </div>

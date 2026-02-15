@@ -47,12 +47,14 @@ func main() {
 	var screenerService *services.ScreenerService
 	var insiderService *services.InsiderService
 	var sectorService *services.SectorService
+	var fundamentalsService *services.FundamentalsService
 
 	if mongoDB != nil {
 		newsService = services.NewNewsService(mongoDB)
 		screenerService = services.NewScreenerService(mongoDB)
 		insiderService = services.NewInsiderService(mongoDB)
 		sectorService = services.NewSectorService(mongoDB)
+		fundamentalsService = services.NewFundamentalsService(mongoDB)
 	}
 
 	tradingService := services.NewTradingService(screenerService, marketService)
@@ -89,7 +91,7 @@ func main() {
 	}()
 
 	// Initialize HTTP Server
-	server := server.NewServer(cfg, db, mongoDB, rdb, taskDistributor, authService, marketService, newsService, screenerService, insiderService, sectorService)
+	server := server.NewServer(cfg, db, mongoDB, rdb, taskDistributor, authService, marketService, newsService, screenerService, insiderService, sectorService, fundamentalsService)
 	if err := server.Run(":" + cfg.Server.Port); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
 	}

@@ -81,9 +81,28 @@ export interface Candle {
   close: number;
 }
 
+export interface FundamentalsRecord {
+  id: string;
+  ticker: string;
+  period: string;
+  timeframe: string;
+  revenue: number;
+  net_income: number;
+  total_assets: number;
+  total_liabilities: number;
+  operating_cashflow: number;
+  metrics?: Record<string, any>; // Comprehensive metrics map
+  fetched_at: string;
+}
+
 export const getStockCandles = async (symbol: string, timeframe: string): Promise<Candle[]> => {
   const response = await client.get(`/market/candles/${symbol}?timeframe=${timeframe}`);
   return response.data || [];
+};
+
+export const getFundamentals = async (symbol: string, timeframe: string) => {
+  const response = await client.get(`/fundamentals/${symbol}?timeframe=${timeframe}`);
+  return response.data as FundamentalsRecord;
 };
 
 export const getPrice = async (symbol: string): Promise<PriceData> => {

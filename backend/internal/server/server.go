@@ -26,10 +26,11 @@ type Server struct {
 	screenerService *services.ScreenerService
 	insiderService  *services.InsiderService
 	sectorService   *services.SectorService
+	fundService     *services.FundamentalsService
 	redisClient     *redis.Client
 }
 
-func NewServer(cfg *config.Config, db *gorm.DB, mongoDB *mongo.Database, redisClient *redis.Client, taskDistributor *worker.TaskDistributor, authService *services.AuthService, marketService *services.MarketService, newsService *services.NewsService, screenerService *services.ScreenerService, insiderService *services.InsiderService, sectorService *services.SectorService) *Server {
+func NewServer(cfg *config.Config, db *gorm.DB, mongoDB *mongo.Database, redisClient *redis.Client, taskDistributor *worker.TaskDistributor, authService *services.AuthService, marketService *services.MarketService, newsService *services.NewsService, screenerService *services.ScreenerService, insiderService *services.InsiderService, sectorService *services.SectorService, fundService *services.FundamentalsService) *Server {
 	s := &Server{
 		cfg:             cfg,
 		db:              db,
@@ -42,6 +43,7 @@ func NewServer(cfg *config.Config, db *gorm.DB, mongoDB *mongo.Database, redisCl
 		screenerService: screenerService,
 		insiderService:  insiderService,
 		sectorService:   sectorService,
+		fundService:     fundService,
 		router:          gin.Default(),
 	}
 
@@ -103,6 +105,11 @@ func (s *Server) SetupRoutes() {
 		sector := v1.Group("/sector")
 		{
 			sector.GET("/", s.handleGetSectorPerformance)
+		}
+
+		fundamentals := v1.Group("/fundamentals")
+		{
+			fundamentals.GET("/:symbol", s.handleGetFundamentals)
 		}
 	}
 }
@@ -330,4 +337,26 @@ func (s *Server) handleGetSectorPerformance(c *gin.Context) {
 	}
 
 	c.JSON(200, results)
+}
+
+func (s *Server) handleGetFundamentals(c *gin.Context) {
+	symbol := c.Param("symbol")
+	if s.fundService == nil {
+		c.JSON(503, gin.H{"error": "Fundamentals service unavailable"})
+		return
+	}
+
+	tf := c.DefaultQuery("timeframe", "current")
+
+	rec, err := s.fundService.GetLatestByTimeframe(c.Request.Context(), symbol, tf)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	if rec == nil {
+		c.JSON(404, gin.H{"error": "no fundamentals found"})
+		return
+	}
+
+	c.JSON(200, rec)
 }
