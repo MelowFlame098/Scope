@@ -378,16 +378,7 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', color: '#fff' }}>
-      <div
-        style={{
-          marginBottom: '16px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '10px',
-        }}
-      >
+      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ margin: 0 }}>Financial Fundamentals</h3>
       </div>
 
@@ -397,52 +388,57 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
         ) : !fundamentals ? (
           <div style={centerStyle}>No fundamentals found for {symbol}</div>
         ) : (
-          <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%' }}>
             {/* Header Info */}
             <div style={{
                 background: 'rgba(255,255,255,0.03)',
                 padding: '16px',
                 borderRadius: '12px',
                 border: '1px solid rgba(255,255,255,0.05)',
-                marginBottom: '20px'
+                flexShrink: 0
               }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h1 style={{ margin: 0, fontSize: '1.8rem' }}>{fundamentals.ticker}</h1>
-                  <div style={{ fontSize: '0.9rem', color: '#a1a1aa' }}>
-                    Period: {new Date(fundamentals.period).toLocaleDateString()}
-                  </div>
-                </div>
-                {/* Page Navigation */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {pages.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setActivePage(index)}
-                      style={{
-                        width: '10px',
-                        height: '10px',
-                        borderRadius: '50%',
-                        background: activePage === index ? '#8b5cf6' : 'rgba(255,255,255,0.2)',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: 0
-                      }}
-                      title={`Page ${index + 1}`}
-                    />
-                  ))}
+              <div>
+                <h1 style={{ margin: 0, fontSize: '1.8rem' }}>{fundamentals.ticker}</h1>
+                <div style={{ fontSize: '0.9rem', color: '#a1a1aa' }}>
+                  Period: {new Date(fundamentals.period).toLocaleDateString()}
                 </div>
               </div>
             </div>
 
-            {/* Page Content */}
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-                <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.1rem', color: '#e5e7eb' }}>
-                    {pages[activePage].title}
-                </h3>
-                {pages[activePage].content}
+            {/* Horizontal Scrollable Pages */}
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'row', 
+              overflowX: 'auto', 
+              gap: '20px', 
+              scrollSnapType: 'x mandatory',
+              paddingBottom: '10px' // Space for scrollbar
+            }}>
+              {pages.map((page, index) => (
+                <div key={index} style={{ 
+                  minWidth: '100%', 
+                  scrollSnapAlign: 'start', 
+                  display: 'flex', 
+                  flexDirection: 'column'
+                }}>
+                  <h3 style={{ 
+                    marginTop: 0, 
+                    marginBottom: '12px', 
+                    fontSize: '1.1rem', 
+                    color: '#e5e7eb',
+                    borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    paddingBottom: '8px'
+                  }}>
+                    {page.title}
+                  </h3>
+                  <div style={{ flex: 1, overflowY: 'auto' }}>
+                    {page.content}
+                  </div>
+                </div>
+              ))}
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

@@ -23,7 +23,12 @@ const StockChart: React.FC<StockChartProps> = ({ symbol }) => {
         const candles = await getStockCandles(symbol, timeframe);
         const data = candles.map((c: Candle) => ({
           x: new Date(c.timestamp),
-          y: [c.open, c.high, c.low, c.close]
+          y: [
+            c.open ? Number(Number(c.open).toFixed(2)) : null,
+            c.high ? Number(Number(c.high).toFixed(2)) : null,
+            c.low ? Number(Number(c.low).toFixed(2)) : null,
+            c.close ? Number(Number(c.close).toFixed(2)) : null
+          ]
         }));
         setSeries([{ data }]);
       } catch (error) {
@@ -69,6 +74,23 @@ const StockChart: React.FC<StockChartProps> = ({ symbol }) => {
       },
       axisTicks: {
         show: false
+      }
+    },
+    tooltip: {
+      theme: 'dark',
+      shared: true,
+      intersect: false,
+      y: {
+        formatter: (val: number) => {
+          if (typeof val === 'number') {
+            return val.toFixed(2);
+          }
+          return val;
+        }
+      },
+      // Explicitly format tooltip items
+      x: {
+        format: 'dd MMM yyyy HH:mm'
       }
     },
     yaxis: {

@@ -95,14 +95,14 @@ class AIService:
         # Screener every 1 hour
         schedule.every(1).hours.do(self.screener.run_screen)
         
-        # Insider every 4 hours
-        schedule.every(4).hours.do(self.insider.fetch_insider_trades)
+        # Insider every 15 mins
+        schedule.every(15).minutes.do(self.insider.fetch_insider_trades)
         
-        # Sector every 4 hours
-        schedule.every(4).hours.do(self.sector.fetch_sector_performance)
+        # Sector every 15 mins
+        schedule.every(15).minutes.do(self.sector.fetch_sector_performance)
         
-        # Fundamentals every 4 hours (Dynamic)
-        schedule.every(4).hours.do(self.run_fundamentals_dynamic)
+        # Fundamentals every 1 day
+        schedule.every(1).days.do(self.run_fundamentals_dynamic)
         
         while True:
             schedule.run_pending()
