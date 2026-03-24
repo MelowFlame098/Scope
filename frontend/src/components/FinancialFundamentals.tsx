@@ -8,7 +8,18 @@ interface FinancialFundamentalsProps {
 const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol }) => {
   const [fundamentals, setFundamentals] = useState<FundamentalsRecord | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activePage, setActivePage] = useState<number>(0);
+  type Mode = 'annual' | 'quarterly';
+  type Selection = { mode: Mode; year: number | null; quarter?: 1 | 2 | 3 | 4 };
+  const [incomeSel, setIncomeSel] = useState<Selection | null>(null);
+  const [balanceSel, setBalanceSel] = useState<Selection | null>(null);
+  const [cashSel, setCashSel] = useState<Selection | null>(null);
+  const [incomeExpanded, setIncomeExpanded] = useState(false);
+  const [balanceExpanded, setBalanceExpanded] = useState(false);
+  const [cashExpanded, setCashExpanded] = useState(false);
+  const [incomeDraft, setIncomeDraft] = useState<Selection | null>(null);
+  const [balanceDraft, setBalanceDraft] = useState<Selection | null>(null);
+  const [cashDraft, setCashDraft] = useState<Selection | null>(null);
+  const nowYear = new Date().getFullYear();
 
   useEffect(() => {
     const fetchFundamentals = async () => {
@@ -25,7 +36,83 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
     };
 
     fetchFundamentals();
+    const interval = window.setInterval(fetchFundamentals, 24 * 60 * 60 * 1000);
+    return () => window.clearInterval(interval);
   }, [symbol]);
+
+  const parseYear = (dateStr: string | undefined) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return Number.isFinite(d.getTime()) ? d.getFullYear() : null;
+  };
+
+  const quarterOfDate = (dateStr: string | undefined) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (!Number.isFinite(d.getTime())) return null;
+    return (Math.floor(d.getMonth() / 3) + 1) as 1 | 2 | 3 | 4;
+  };
+
+  const latestAnnualYear = (annual: any[] | undefined) => {
+    if (!annual || annual.length === 0) return null;
+    let best: any | null = null;
+    let bestTime = -Infinity;
+    for (const p of annual) {
+      const t = p?.date ? new Date(p.date).getTime() : NaN;
+      if (Number.isFinite(t) && t > bestTime) {
+        best = p;
+        bestTime = t;
+      }
+    }
+    return best ? parseYear(best.date) : null;
+  };
+
+  const collectYears = (annual: any[] | undefined, quarterly: any[] | undefined) => {
+    const setYears = new Set<number>();
+    (annual || []).forEach((p: any) => {
+      const y = parseYear(p?.date);
+      if (y) setYears.add(y);
+    });
+    (quarterly || []).forEach((p: any) => {
+      const y = parseYear(p?.date);
+      if (y) setYears.add(y);
+    });
+    setYears.add(nowYear);
+    return Array.from(setYears).sort((a, b) => b - a);
+  };
+
+  const availableQuarters = (quarterly: any[] | undefined, year: number | null) => {
+    const quarters: Array<{ label: string; value: 1 | 2 | 3 | 4; disabled?: boolean }> = [
+      { label: 'Q1', value: 1 },
+      { label: 'Q2', value: 2 },
+      { label: 'Q3', value: 3 },
+      { label: 'Q4', value: 4 }
+    ];
+    if (!year) return quarters;
+
+    const avail = new Set<number>();
+    (quarterly || []).forEach((p: any) => {
+      const y = parseYear(p?.date);
+      const q = quarterOfDate(p?.date);
+      if (y && q && y === year) avail.add(q);
+    });
+    if (avail.size === 0) return quarters;
+    return quarters.map(q => ({ ...q, disabled: !avail.has(q.value) }));
+  };
+
+  useEffect(() => {
+    if (!fundamentals) return;
+    if (!incomeSel) {
+      setIncomeSel({ mode: 'annual', year: latestAnnualYear(fundamentals.financials_annual) });
+    }
+    if (!balanceSel) {
+      setBalanceSel({ mode: 'annual', year: latestAnnualYear(fundamentals.balance_sheet_annual) });
+    }
+    if (!cashSel) {
+      setCashSel({ mode: 'annual', year: latestAnnualYear(fundamentals.cashflow_annual) });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fundamentals]);
 
   const renderMetric = (label: string, value: any, format: 'currency' | 'percent' | 'number' | 'string' = 'number') => {
     let formattedValue = 'N/A';
@@ -45,13 +132,163 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
 
   const metrics = fundamentals?.metrics || {};
 
+  // Helper to infer formatting for dynamic keys
+  const inferFormat = (key: string, value: any): 'currency' | 'percent' | 'number' | 'string' => {
+    const k = key.toLowerCase();
+    if (typeof value === 'string') return 'string';
+    if (k.includes('margin') || k.includes('rate') || k.includes('yield') || k.includes('percent') || k.includes('growth') || k.includes('ratio')) return 'percent';
+    if (k.includes('revenue') || k.includes('income') || k.includes('profit') || k.includes('cash') || k.includes('debt') || k.includes('assets') || k.includes('liabilities') || k.includes('equity') || k.includes('paid') || k.includes('received') || k.includes('expenditure') || k.includes('repurchase') || k.includes('value')) return 'currency';
+    return 'number';
+  };
+
+  const renderFinancialsAsGrid = (
+    annualData: any[] | undefined,
+    quarterlyData: any[] | undefined,
+    title: string,
+    selected?: Selection
+  ) => {
+    if ((!annualData || annualData.length === 0) && (!quarterlyData || quarterlyData.length === 0)) return <div style={centerStyle}>No {title} data available</div>;
+
+    // Helper to format quarters (e.g. 2023-09-30 -> Q3 2023)
+    const formatQuarter = (dateStr: string) => {
+      try {
+        const d = new Date(dateStr);
+        const month = d.getMonth() + 1;
+        const year = d.getFullYear();
+        const quarter = Math.ceil(month / 3);
+        return `Q${quarter} ${year}`;
+      } catch {
+        return dateStr;
+      }
+    };
+
+    const pickLatestPeriod = (data: any[] | undefined) => {
+      if (!data || data.length === 0) return null;
+
+      let best = data[0];
+      let bestTime = Number.NaN;
+
+      for (const candidate of data) {
+        if (!candidate) continue;
+        const candidateTime = candidate?.date ? new Date(candidate.date).getTime() : Number.NaN;
+
+        if (!Number.isFinite(bestTime)) {
+          best = candidate;
+          bestTime = candidateTime;
+          continue;
+        }
+
+        if (!Number.isFinite(candidateTime)) continue;
+        if (candidateTime > bestTime) {
+          best = candidate;
+          bestTime = candidateTime;
+        }
+      }
+
+      return best;
+    };
+
+    const renderSinglePeriod = (period: any, isQuarterly: boolean) => {
+      if (!period) return null;
+
+      const rawKeys = Object.keys(period).filter(k => k !== 'date');
+      const keys = rawKeys.slice(0, 36);
+      const displayDate = isQuarterly
+        ? formatQuarter(period.date)
+        : typeof period.date === 'string'
+          ? period.date.substring(0, 4)
+          : 'N/A';
+
+      return (
+        <div>
+          <h4 style={{ ...sectionHeaderStyle, color: '#fff' }}>{displayDate}</h4>
+          <div style={sectionStyle}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '8px' }}>
+              {keys.map(k => (
+                <React.Fragment key={k}>
+                  {renderMetric(k.replace(/([A-Z])/g, ' $1').trim(), period[k], inferFormat(k, period[k]))}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const latestAnnual = pickLatestPeriod(annualData);
+    const latestQuarterly = pickLatestPeriod(quarterlyData);
+
+    let periodToShow: any = null;
+    let isQuarter = false;
+    if (selected?.mode === 'quarterly') {
+      const yr = selected.year;
+      const q = selected.quarter;
+      if (yr && q && quarterlyData && quarterlyData.length > 0) {
+        const match = quarterlyData.find(p => parseYear(p.date) === yr && quarterOfDate(p.date) === q);
+        if (!match) return <div style={centerStyle}>No {title} data for Q{q} {yr}</div>;
+        periodToShow = match;
+        isQuarter = true;
+      } else {
+        periodToShow = latestQuarterly;
+        isQuarter = true;
+      }
+    } else {
+      const yr = selected?.year;
+      if (yr && annualData && annualData.length > 0) {
+        const match = annualData.find(p => parseYear(p.date) === yr);
+        if (!match) return <div style={centerStyle}>No {title} data for {yr}</div>;
+        periodToShow = match;
+      } else {
+        periodToShow = latestAnnual;
+      }
+      isQuarter = false;
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {renderSinglePeriod(periodToShow, isQuarter)}
+      </div>
+    );
+  };
+
+  const renderHoldersAsGrid = (data: any[] | undefined, title: string) => {
+    if (!data || data.length === 0) return <div style={centerStyle}>No {title} data available</div>;
+
+    // Show top 12 holders
+    const holders = data.slice(0, 12);
+
+    return (
+      <div style={sectionStyle}>
+        <div style={gridStyle}>
+          {holders.map((holder, index) => {
+            // Try to find the 'Value' or '% Out' field to display as value
+            // Common keys: 'Holder', 'Shares', 'Date Reported', '% Out', 'Value'
+            let val = holder['Value'] || holder['% Out'] || holder['Shares'];
+            let fmt: 'currency' | 'percent' | 'number' = 'number';
+            
+            if (holder['Value']) fmt = 'currency';
+            else if (holder['% Out']) fmt = 'percent';
+
+            return (
+              <React.Fragment key={index}>
+                {renderMetric(holder['Holder'] || `Holder ${index+1}`, val, fmt)}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   // Pages Configuration
+  // Grouping categories to fit 2-3 per page
   const pages = [
-    // --- PART 1: Raw Fundamentals (Finviz) ---
+    // --- Page 1: Valuation & Profitability ---
     {
-      title: "Valuation Metrics",
+      title: "Valuation & Profitability",
       content: (
         <>
+          <h4 style={sectionHeaderStyle}>Valuation Metrics</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Market Cap", metrics.market_cap, 'currency')}
@@ -67,13 +304,8 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
               {renderMetric("EV / Revenue", metrics.ev_revenue)}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Profitability Metrics",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Profitability Metrics</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Gross Margin", metrics.gross_margin, 'percent')}
@@ -87,28 +319,26 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
         </>
       )
     },
+
+    // --- Page 2: Growth & Financial Health ---
     {
-      title: "Growth Metrics",
+      title: "Growth & Health",
       content: (
         <>
+          <h4 style={sectionHeaderStyle}>Growth Metrics</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("EPS Growth (5Y)", metrics.eps_growth_past_5y, 'percent')}
               {renderMetric("EPS Growth (Next 5Y)", metrics.eps_growth_next_5y, 'percent')}
-              {renderMetric("Revenue Growth", metrics.revenue_growth, 'percent')} {/* Note: Might need to be added to backend if missing, assuming sales_growth_past_5y or similar */}
+              {renderMetric("Revenue Growth", metrics.revenue_growth, 'percent')}
               {renderMetric("Qtr Rev Growth (YoY)", metrics.sales_growth_qtr_over_qtr, 'percent')}
               {renderMetric("Qtr EPS Growth (YoY)", metrics.eps_growth_qtr_over_qtr, 'percent')}
               {renderMetric("Sales Growth", metrics.sales_growth_past_5y, 'percent')}
-              {renderMetric("Earnings Growth", metrics.eps_growth_this_year, 'percent')} {/* Approximation if exact field missing */}
+              {renderMetric("Earnings Growth", metrics.eps_growth_this_year, 'percent')}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Financial Health & Liquidity",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Financial Health & Liquidity</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Current Ratio", metrics.current_ratio)}
@@ -120,13 +350,8 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
               {renderMetric("Book Value/Share", metrics.book_value_per_share, 'currency')}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Cash Flow Metrics",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Cash Flow Metrics</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Operating Cash Flow", metrics.operating_cash_flow, 'currency')}
@@ -137,28 +362,26 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
         </>
       )
     },
+
+    // --- Page 3: Earnings, Dividends & Ownership ---
     {
-      title: "Earnings & Analyst Data",
+      title: "Earnings, Divs & Ownership",
       content: (
         <>
+          <h4 style={sectionHeaderStyle}>Earnings & Analyst Data</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("EPS (TTM)", metrics.eps_ttm, 'currency')}
               {renderMetric("EPS (Next Q)", metrics.eps_next_q, 'currency')}
               {renderMetric("EPS (Next Y)", metrics.eps_next_y, 'currency')}
-              {renderMetric("EPS Surprise", metrics.eps_surprise, 'percent')} {/* Need to check if available */}
+              {renderMetric("EPS Surprise", metrics.eps_surprise, 'percent')}
               {renderMetric("Analyst Recom", metrics.analyst_recom)}
               {renderMetric("Target Price", metrics.target_price, 'currency')}
               {renderMetric("Earnings Date", metrics.earnings_date, 'string')}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Dividends",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Dividends</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Dividend Yield", metrics.dividend_yield, 'percent')}
@@ -167,13 +390,8 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
               {renderMetric("Ex-Dividend Date", metrics.ex_dividend_date, 'string')}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Ownership & Share Structure",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Ownership & Share Structure</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Insider Ownership", metrics.insider_own, 'percent')}
@@ -189,10 +407,13 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
         </>
       )
     },
+
+    // --- Page 4: Risk, Liquidity & Info ---
     {
-      title: "Risk & Volatility",
+      title: "Risk, Liquidity & Info",
       content: (
         <>
+          <h4 style={sectionHeaderStyle}>Risk & Volatility</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Beta", metrics.beta)}
@@ -201,26 +422,16 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
               {renderMetric("ATR", metrics.atr)}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Trading Liquidity",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Trading Liquidity</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Average Volume", metrics.avg_volume, 'number')}
               {renderMetric("Relative Volume", metrics.rel_volume)}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Company Information",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Company Information</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Sector", metrics.sector, 'string')}
@@ -236,11 +447,12 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
       )
     },
 
-    // --- PART 2: Advanced Financial Ratios (Calculated) ---
+    // --- Page 5: Advanced Ratios (Valuation, Profitability, Growth) ---
     {
-      title: "Valuation & Yield Ratios",
+      title: "Advanced Ratios I",
       content: (
         <>
+          <h4 style={sectionHeaderStyle}>Valuation & Yield Ratios</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Earnings Yield", metrics.earnings_yield, 'percent')}
@@ -253,13 +465,8 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
               {renderMetric("PEG Adj Yield", metrics.price_to_growth_adj_yield, 'percent')}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Profitability & Efficiency",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Profitability & Efficiency</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Asset Turnover", metrics.asset_turnover)}
@@ -269,13 +476,8 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
               {renderMetric("Gr. Prof Efficiency", metrics.gross_profit_efficiency, 'percent')}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Growth & Quality Ratios",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Growth & Quality Ratios</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("SGR", metrics.sgr, 'percent')}
@@ -288,10 +490,13 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
         </>
       )
     },
+
+    // --- Page 6: Advanced Ratios (Leverage, Shareholder, Ownership) ---
     {
-      title: "Leverage & Risk Ratios",
+      title: "Advanced Ratios II",
       content: (
         <>
+          <h4 style={sectionHeaderStyle}>Leverage & Risk Ratios</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Net Debt/EBITDA", metrics.net_debt_to_ebitda)}
@@ -301,13 +506,8 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
               {renderMetric("Liquidity Cushion", metrics.liquidity_cushion)}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Shareholder Return",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Shareholder Return</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Shareholder Yield", metrics.shareholder_yield, 'percent')}
@@ -316,13 +516,8 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
               {renderMetric("Capital Efficiency", metrics.capital_efficiency)}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Ownership Ratios",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Ownership Ratios</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Insider Buy Int", metrics.insider_buying_intensity, 'percent')}
@@ -333,23 +528,21 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
         </>
       )
     },
+
+    // --- Page 7: Scores & Liquidity ---
     {
-      title: "Liquidity & Stability",
+      title: "Scores & Stability",
       content: (
         <>
+           <h4 style={sectionHeaderStyle}>Liquidity & Stability</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Vol/Liq Ratio", metrics.volatility_liquidity_ratio)}
               {renderMetric("Turnover Stability", metrics.turnover_stability)}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Composite Scores",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Composite Scores</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Value Score", metrics.value_score)}
@@ -358,18 +551,423 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
               {renderMetric("Low Risk Score", metrics.low_risk_score)}
             </div>
           </div>
-        </>
-      )
-    },
-    {
-      title: "Risk-Adjusted Metrics",
-      content: (
-        <>
+
+          <h4 style={sectionHeaderStyle}>Risk-Adjusted Metrics</h4>
           <div style={sectionStyle}>
             <div style={gridStyle}>
               {renderMetric("Risk Adj Return", metrics.risk_adjusted_return)}
               {renderMetric("Fund Risk Score", metrics.fundamental_risk_score)}
             </div>
+          </div>
+        </>
+      )
+    },
+    // --- PART 3: Core Fundamentals (YFinance Tables) ---
+    {
+      title: "Income Statement",
+      content: (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>
+              Showing: {incomeSel?.mode === 'quarterly' ? `Q${incomeSel?.quarter} ${incomeSel?.year ?? ''}` : `Annual ${incomeSel?.year ?? ''}`}
+            </div>
+            <button
+              onClick={() => {
+                const defYear = incomeSel?.year ?? latestAnnualYear(fundamentals?.financials_annual) ?? null;
+                setIncomeDraft(incomeSel ?? { mode: 'annual', year: defYear, quarter: 1 });
+                setIncomeExpanded(v => !v);
+              }}
+              style={{ background: '#111827', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6, padding: '6px 10px', cursor: 'pointer' }}
+            >
+              {incomeExpanded ? 'Collapse' : 'Expand'}
+            </button>
+          </div>
+          {incomeExpanded && (
+            <div style={{ marginBottom: '12px', padding: '12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 120px' }}>
+                  <div style={{ marginBottom: 6, color: '#a1a1aa', fontSize: '0.8rem' }}>Mode</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => setIncomeDraft(prev => ({ ...(prev ?? { mode: 'annual', year: latestAnnualYear(fundamentals?.financials_annual), quarter: 1 }), mode: 'annual' }))}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: '1px solid #374151',
+                        background: (incomeDraft?.mode ?? 'annual') === 'annual' ? '#111827' : 'transparent',
+                        color: '#e5e7eb',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Annual
+                    </button>
+                    <button
+                      onClick={() => setIncomeDraft(prev => ({ ...(prev ?? { mode: 'quarterly', year: latestAnnualYear(fundamentals?.financials_annual), quarter: 1 }), mode: 'quarterly' }))}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: '1px solid #374151',
+                        background: (incomeDraft?.mode ?? 'annual') === 'quarterly' ? '#111827' : 'transparent',
+                        color: '#e5e7eb',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Quarterly
+                    </button>
+                  </div>
+                </div>
+                <div style={{ flex: '1 1 180px' }}>
+                  <div style={{ marginBottom: 6, color: '#a1a1aa', fontSize: '0.8rem' }}>Year</div>
+                  <select
+                    value={incomeDraft?.year ?? ''}
+                    onChange={e => {
+                      const nextYear = e.target.value ? parseInt(e.target.value, 10) : null;
+                      setIncomeDraft(prev => {
+                        const base = prev ?? { mode: 'annual', year: null, quarter: 1 };
+                        let nextQuarter = base.quarter ?? 1;
+                        if (base.mode === 'quarterly') {
+                          const opts = availableQuarters(fundamentals?.financials_quarterly, nextYear);
+                          const selectedOpt = opts.find(o => o.value === nextQuarter);
+                          if (selectedOpt?.disabled) {
+                            nextQuarter = opts.find(o => !o.disabled)?.value ?? 1;
+                          }
+                        }
+                        return { ...base, year: nextYear, quarter: nextQuarter };
+                      });
+                    }}
+                    style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
+                  >
+                    <option value="">Select year</option>
+                    {collectYears(fundamentals?.financials_annual, fundamentals?.financials_quarterly).map(y => (
+                      <option key={y} value={y}>
+                        {y === nowYear ? `Current (${y})` : y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ flex: '1 1 160px', opacity: (incomeDraft?.mode ?? 'annual') === 'quarterly' ? 1 : 0.5 }}>
+                  <div style={{ marginBottom: 6, color: '#a1a1aa', fontSize: '0.8rem' }}>Quarter</div>
+                  <select
+                    disabled={(incomeDraft?.mode ?? 'annual') !== 'quarterly'}
+                    value={incomeDraft?.quarter ?? 1}
+                    onChange={e => setIncomeDraft(prev => ({ ...(prev ?? { mode: 'quarterly', year: latestAnnualYear(fundamentals?.financials_annual), quarter: 1 }), quarter: parseInt(e.target.value, 10) as 1 | 2 | 3 | 4 }))}
+                    style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
+                  >
+                    {availableQuarters(fundamentals?.financials_quarterly, incomeDraft?.year ?? null).map(q => (
+                      <option key={q.value} value={q.value} disabled={q.disabled}>
+                        {q.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                <button
+                  onClick={() => {
+                    setIncomeDraft(null);
+                    setIncomeExpanded(false);
+                  }}
+                  style={{ background: 'transparent', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6, padding: '8px 12px', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (incomeDraft) setIncomeSel(incomeDraft);
+                    setIncomeExpanded(false);
+                  }}
+                  style={{ background: '#2563eb', color: '#fff', border: '1px solid #1d4ed8', borderRadius: 6, padding: '8px 12px', cursor: 'pointer' }}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          )}
+          <div style={sectionStyle}>
+            {renderFinancialsAsGrid(
+              fundamentals?.financials_annual,
+              fundamentals?.financials_quarterly,
+              "Income Statement",
+              incomeExpanded
+                ? (incomeDraft ?? incomeSel ?? { mode: 'annual', year: latestAnnualYear(fundamentals?.financials_annual) })
+                : (incomeSel ?? { mode: 'annual', year: latestAnnualYear(fundamentals?.financials_annual) })
+            )}
+          </div>
+        </>
+      )
+    },
+    {
+      title: "Balance Sheet",
+      content: (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>
+              Showing: {balanceSel?.mode === 'quarterly' ? `Q${balanceSel?.quarter} ${balanceSel?.year ?? ''}` : `Annual ${balanceSel?.year ?? ''}`}
+            </div>
+            <button
+              onClick={() => {
+                const defYear = balanceSel?.year ?? latestAnnualYear(fundamentals?.balance_sheet_annual) ?? null;
+                setBalanceDraft(balanceSel ?? { mode: 'annual', year: defYear, quarter: 1 });
+                setBalanceExpanded(v => !v);
+              }}
+              style={{ background: '#111827', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6, padding: '6px 10px', cursor: 'pointer' }}
+            >
+              {balanceExpanded ? 'Collapse' : 'Expand'}
+            </button>
+          </div>
+          {balanceExpanded && (
+            <div style={{ marginBottom: '12px', padding: '12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 120px' }}>
+                  <div style={{ marginBottom: 6, color: '#a1a1aa', fontSize: '0.8rem' }}>Mode</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => setBalanceDraft(prev => ({ ...(prev ?? { mode: 'annual', year: latestAnnualYear(fundamentals?.balance_sheet_annual), quarter: 1 }), mode: 'annual' }))}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: '1px solid #374151',
+                        background: (balanceDraft?.mode ?? 'annual') === 'annual' ? '#111827' : 'transparent',
+                        color: '#e5e7eb',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Annual
+                    </button>
+                    <button
+                      onClick={() => setBalanceDraft(prev => ({ ...(prev ?? { mode: 'quarterly', year: latestAnnualYear(fundamentals?.balance_sheet_annual), quarter: 1 }), mode: 'quarterly' }))}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: '1px solid #374151',
+                        background: (balanceDraft?.mode ?? 'annual') === 'quarterly' ? '#111827' : 'transparent',
+                        color: '#e5e7eb',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Quarterly
+                    </button>
+                  </div>
+                </div>
+                <div style={{ flex: '1 1 180px' }}>
+                  <div style={{ marginBottom: 6, color: '#a1a1aa', fontSize: '0.8rem' }}>Year</div>
+                  <select
+                    value={balanceDraft?.year ?? ''}
+                    onChange={e => {
+                      const nextYear = e.target.value ? parseInt(e.target.value, 10) : null;
+                      setBalanceDraft(prev => {
+                        const base = prev ?? { mode: 'annual', year: null, quarter: 1 };
+                        let nextQuarter = base.quarter ?? 1;
+                        if (base.mode === 'quarterly') {
+                          const opts = availableQuarters(fundamentals?.balance_sheet_quarterly, nextYear);
+                          const selectedOpt = opts.find(o => o.value === nextQuarter);
+                          if (selectedOpt?.disabled) {
+                            nextQuarter = opts.find(o => !o.disabled)?.value ?? 1;
+                          }
+                        }
+                        return { ...base, year: nextYear, quarter: nextQuarter };
+                      });
+                    }}
+                    style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
+                  >
+                    <option value="">Select year</option>
+                    {collectYears(fundamentals?.balance_sheet_annual, fundamentals?.balance_sheet_quarterly).map(y => (
+                      <option key={y} value={y}>
+                        {y === nowYear ? `Current (${y})` : y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ flex: '1 1 160px', opacity: (balanceDraft?.mode ?? 'annual') === 'quarterly' ? 1 : 0.5 }}>
+                  <div style={{ marginBottom: 6, color: '#a1a1aa', fontSize: '0.8rem' }}>Quarter</div>
+                  <select
+                    disabled={(balanceDraft?.mode ?? 'annual') !== 'quarterly'}
+                    value={balanceDraft?.quarter ?? 1}
+                    onChange={e => setBalanceDraft(prev => ({ ...(prev ?? { mode: 'quarterly', year: latestAnnualYear(fundamentals?.balance_sheet_annual), quarter: 1 }), quarter: parseInt(e.target.value, 10) as 1 | 2 | 3 | 4 }))}
+                    style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
+                  >
+                    {availableQuarters(fundamentals?.balance_sheet_quarterly, balanceDraft?.year ?? null).map(q => (
+                      <option key={q.value} value={q.value} disabled={q.disabled}>
+                        {q.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                <button
+                  onClick={() => {
+                    setBalanceDraft(null);
+                    setBalanceExpanded(false);
+                  }}
+                  style={{ background: 'transparent', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6, padding: '8px 12px', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (balanceDraft) setBalanceSel(balanceDraft);
+                    setBalanceExpanded(false);
+                  }}
+                  style={{ background: '#2563eb', color: '#fff', border: '1px solid #1d4ed8', borderRadius: 6, padding: '8px 12px', cursor: 'pointer' }}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          )}
+          <div style={sectionStyle}>
+            {renderFinancialsAsGrid(
+              fundamentals?.balance_sheet_annual,
+              fundamentals?.balance_sheet_quarterly,
+              "Balance Sheet",
+              balanceExpanded
+                ? (balanceDraft ?? balanceSel ?? { mode: 'annual', year: latestAnnualYear(fundamentals?.balance_sheet_annual) })
+                : (balanceSel ?? { mode: 'annual', year: latestAnnualYear(fundamentals?.balance_sheet_annual) })
+            )}
+          </div>
+        </>
+      )
+    },
+    {
+      title: "Cash Flow",
+      content: (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>
+              Showing: {cashSel?.mode === 'quarterly' ? `Q${cashSel?.quarter} ${cashSel?.year ?? ''}` : `Annual ${cashSel?.year ?? ''}`}
+            </div>
+            <button
+              onClick={() => {
+                const defYear = cashSel?.year ?? latestAnnualYear(fundamentals?.cashflow_annual) ?? null;
+                setCashDraft(cashSel ?? { mode: 'annual', year: defYear, quarter: 1 });
+                setCashExpanded(v => !v);
+              }}
+              style={{ background: '#111827', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6, padding: '6px 10px', cursor: 'pointer' }}
+            >
+              {cashExpanded ? 'Collapse' : 'Expand'}
+            </button>
+          </div>
+          {cashExpanded && (
+            <div style={{ marginBottom: '12px', padding: '12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 120px' }}>
+                  <div style={{ marginBottom: 6, color: '#a1a1aa', fontSize: '0.8rem' }}>Mode</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => setCashDraft(prev => ({ ...(prev ?? { mode: 'annual', year: latestAnnualYear(fundamentals?.cashflow_annual), quarter: 1 }), mode: 'annual' }))}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: '1px solid #374151',
+                        background: (cashDraft?.mode ?? 'annual') === 'annual' ? '#111827' : 'transparent',
+                        color: '#e5e7eb',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Annual
+                    </button>
+                    <button
+                      onClick={() => setCashDraft(prev => ({ ...(prev ?? { mode: 'quarterly', year: latestAnnualYear(fundamentals?.cashflow_annual), quarter: 1 }), mode: 'quarterly' }))}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: '1px solid #374151',
+                        background: (cashDraft?.mode ?? 'annual') === 'quarterly' ? '#111827' : 'transparent',
+                        color: '#e5e7eb',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Quarterly
+                    </button>
+                  </div>
+                </div>
+                <div style={{ flex: '1 1 180px' }}>
+                  <div style={{ marginBottom: 6, color: '#a1a1aa', fontSize: '0.8rem' }}>Year</div>
+                  <select
+                    value={cashDraft?.year ?? ''}
+                    onChange={e => {
+                      const nextYear = e.target.value ? parseInt(e.target.value, 10) : null;
+                      setCashDraft(prev => {
+                        const base = prev ?? { mode: 'annual', year: null, quarter: 1 };
+                        let nextQuarter = base.quarter ?? 1;
+                        if (base.mode === 'quarterly') {
+                          const opts = availableQuarters(fundamentals?.cashflow_quarterly, nextYear);
+                          const selectedOpt = opts.find(o => o.value === nextQuarter);
+                          if (selectedOpt?.disabled) {
+                            nextQuarter = opts.find(o => !o.disabled)?.value ?? 1;
+                          }
+                        }
+                        return { ...base, year: nextYear, quarter: nextQuarter };
+                      });
+                    }}
+                    style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
+                  >
+                    <option value="">Select year</option>
+                    {collectYears(fundamentals?.cashflow_annual, fundamentals?.cashflow_quarterly).map(y => (
+                      <option key={y} value={y}>
+                        {y === nowYear ? `Current (${y})` : y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ flex: '1 1 160px', opacity: (cashDraft?.mode ?? 'annual') === 'quarterly' ? 1 : 0.5 }}>
+                  <div style={{ marginBottom: 6, color: '#a1a1aa', fontSize: '0.8rem' }}>Quarter</div>
+                  <select
+                    disabled={(cashDraft?.mode ?? 'annual') !== 'quarterly'}
+                    value={cashDraft?.quarter ?? 1}
+                    onChange={e => setCashDraft(prev => ({ ...(prev ?? { mode: 'quarterly', year: latestAnnualYear(fundamentals?.cashflow_annual), quarter: 1 }), quarter: parseInt(e.target.value, 10) as 1 | 2 | 3 | 4 }))}
+                    style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
+                  >
+                    {availableQuarters(fundamentals?.cashflow_quarterly, cashDraft?.year ?? null).map(q => (
+                      <option key={q.value} value={q.value} disabled={q.disabled}>
+                        {q.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                <button
+                  onClick={() => {
+                    setCashDraft(null);
+                    setCashExpanded(false);
+                  }}
+                  style={{ background: 'transparent', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6, padding: '8px 12px', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (cashDraft) setCashSel(cashDraft);
+                    setCashExpanded(false);
+                  }}
+                  style={{ background: '#2563eb', color: '#fff', border: '1px solid #1d4ed8', borderRadius: 6, padding: '8px 12px', cursor: 'pointer' }}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          )}
+          <div style={sectionStyle}>
+            {renderFinancialsAsGrid(
+              fundamentals?.cashflow_annual,
+              fundamentals?.cashflow_quarterly,
+              "Cash Flow",
+              cashExpanded
+                ? (cashDraft ?? cashSel ?? { mode: 'annual', year: latestAnnualYear(fundamentals?.cashflow_annual) })
+                : (cashSel ?? { mode: 'annual', year: latestAnnualYear(fundamentals?.cashflow_annual) })
+            )}
+          </div>
+        </>
+      )
+    },
+    {
+      title: "Institutional Holders",
+      content: (
+        <>
+          <div style={sectionStyle}>
+            {renderHoldersAsGrid(fundamentals?.institutional_holders, "Institutional Holders")}
           </div>
         </>
       )

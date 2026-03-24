@@ -92,6 +92,17 @@ export interface FundamentalsRecord {
   total_liabilities: number;
   operating_cashflow: number;
   metrics?: Record<string, any>; // Comprehensive metrics map
+  
+  // --- NEW: Core Fundamentals Tables (YFinance) ---
+  financials_annual?: Record<string, any>[];
+  balance_sheet_annual?: Record<string, any>[];
+  cashflow_annual?: Record<string, any>[];
+  financials_quarterly?: Record<string, any>[];
+  balance_sheet_quarterly?: Record<string, any>[];
+  cashflow_quarterly?: Record<string, any>[];
+  major_holders?: Record<string, any> | any[];
+  institutional_holders?: Record<string, any>[];
+
   fetched_at: string;
 }
 

@@ -89,6 +89,56 @@ class FundamentalsModule:
             a_fin = stock_yf.financials
             a_bs = stock_yf.balance_sheet
             a_cf = stock_yf.cashflow
+            
+            # Helper to clean and format DataFrame for MongoDB
+            def process_yf_df(df):
+                if df is None or df.empty:
+                    return []
+                # Transpose so dates are rows (list of records)
+                df_t = df.T
+                df_t.index.name = 'Date'
+                df_t = df_t.reset_index()
+                records = df_t.to_dict('records')
+                # Clean timestamps and NaNs
+                clean_records = []
+                for rec in records:
+                    clean_rec = {}
+                    for k, v in rec.items():
+                        # Handle Date key
+                        if k == 'Date':
+                            if isinstance(v, (datetime, pd.Timestamp)):
+                                clean_rec['date'] = v.strftime('%Y-%m-%d')
+                            else:
+                                clean_rec['date'] = str(v)
+                            continue
+                        
+                        # Handle values
+                        if pd.isna(v):
+                            clean_rec[k] = None
+                        else:
+                            clean_rec[k] = v
+                    clean_records.append(clean_rec)
+                return clean_records
+
+            financials_annual = process_yf_df(a_fin)
+            balance_sheet_annual = process_yf_df(a_bs)
+            cashflow_annual = process_yf_df(a_cf)
+            
+            financials_quarterly = process_yf_df(q_fin)
+            balance_sheet_quarterly = process_yf_df(q_bs)
+            cashflow_quarterly = process_yf_df(q_cf)
+            
+            # Additional YFinance Data
+            try:
+                major_holders = stock_yf.major_holders.to_dict() if stock_yf.major_holders is not None else {}
+                institutional_holders = stock_yf.institutional_holders.to_dict('records') if stock_yf.institutional_holders is not None else []
+                # Clean institutional holders timestamps
+                for h in institutional_holders:
+                    if 'Date Reported' in h and isinstance(h['Date Reported'], (datetime, pd.Timestamp)):
+                        h['Date Reported'] = h['Date Reported'].strftime('%Y-%m-%d')
+            except:
+                major_holders = {}
+                institutional_holders = []
 
             now_dt = datetime.utcnow()
             
@@ -373,6 +423,17 @@ class FundamentalsModule:
                 # Keep top-level fields for backward compatibility if needed, or rely on metrics
                 "revenue": parse_finviz_val(fund_data.get('Sales')), 
                 "net_income": parse_finviz_val(fund_data.get('Income')),
+                
+                # --- NEW: Core Fundamentals Tables (YFinance) ---
+                "financials_annual": financials_annual,
+                "balance_sheet_annual": balance_sheet_annual,
+                "cashflow_annual": cashflow_annual,
+                "financials_quarterly": financials_quarterly,
+                "balance_sheet_quarterly": balance_sheet_quarterly,
+                "cashflow_quarterly": cashflow_quarterly,
+                "major_holders": major_holders,
+                "institutional_holders": institutional_holders,
+                
                 "fetched_at": now_dt,
             }
             

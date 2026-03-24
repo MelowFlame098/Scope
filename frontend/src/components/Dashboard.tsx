@@ -27,7 +27,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Financial Fundamentals */}
-      <div className="glass-card" style={{ gridColumn: '1 / -1', minHeight: '320px', overflow: 'hidden' }}>
+      <div className="glass-card" style={{ gridColumn: '1 / -1', height: '420px', overflow: 'hidden' }}>
         <FinancialFundamentals symbol={chartSymbol} />
       </div>
 
