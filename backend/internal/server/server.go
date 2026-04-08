@@ -7,6 +7,8 @@ import (
 	"scope-backend/internal/worker"
 
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -111,7 +113,83 @@ func (s *Server) SetupRoutes() {
 		{
 			fundamentals.GET("/:symbol", s.handleGetFundamentals)
 		}
+
+		monitor := v1.Group("/monitor")
+		{
+			monitor.GET("/feed", s.handleGetMonitorFeed)
+		}
 	}
+}
+
+func (s *Server) handleGetMonitorFeed(c *gin.Context) {
+	now := time.Now().UTC()
+	stream := c.DefaultQuery("stream", "news")
+	limitStr := c.DefaultQuery("limit", "20")
+	limit, err := strconv.ParseInt(limitStr, 10, 64)
+	if err != nil || limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	compact := func(s string) string {
+		return strings.Join(strings.Fields(strings.ReplaceAll(s, "\n", " ")), " ")
+	}
+	truncate := func(s string, max int) string {
+		s = compact(s)
+		if max <= 0 {
+			return ""
+		}
+		r := []rune(s)
+		if len(r) <= max {
+			return s
+		}
+		return string(r[:max]) + "…"
+	}
+
+	if s.newsService != nil && stream == "news" {
+		articles, err := s.newsService.GetLatestNews(c.Request.Context(), limit)
+		if err == nil && len(articles) > 0 {
+			items := make([]gin.H, 0, len(articles))
+			for _, a := range articles {
+				category := ""
+				if len(a.Tags) > 0 {
+					category = a.Tags[0]
+				}
+				items = append(items, gin.H{
+					"id":           a.ID.Hex(),
+					"kind":         "news",
+					"title":        truncate(a.Title, 140),
+					"summary":      truncate(a.Content, 280),
+					"source":       a.Source,
+					"url":          a.URL,
+					"region":       "Global",
+					"category":     category,
+					"published_at": a.Timestamp.UTC().Format(time.RFC3339),
+				})
+			}
+			c.JSON(200, gin.H{
+				"generated_at": now.Format(time.RFC3339),
+				"items":        items,
+			})
+			return
+		}
+	}
+
+	c.JSON(200, gin.H{
+		"generated_at": now.Format(time.RFC3339),
+		"items": []gin.H{
+			{
+				"id":           "demo-001",
+				"kind":         "system",
+				"title":        "No data yet",
+				"summary":      "Scope Monitor is wired to your backend. Next: populate MongoDB (news fetch) and this feed will switch to real items automatically.",
+				"source":       "Scope",
+				"url":          "",
+				"region":       "Global",
+				"category":     "System",
+				"published_at": now.Add(-5 * time.Minute).Format(time.RFC3339),
+			},
+		},
+	})
 }
 
 func (s *Server) handleGetPrice(c *gin.Context) {

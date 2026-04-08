@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getFundamentals, FundamentalsRecord } from '../api/client';
 
 interface FinancialFundamentalsProps {
@@ -19,7 +19,8 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
   const [incomeDraft, setIncomeDraft] = useState<Selection | null>(null);
   const [balanceDraft, setBalanceDraft] = useState<Selection | null>(null);
   const [cashDraft, setCashDraft] = useState<Selection | null>(null);
-  const nowYear = new Date().getFullYear();
+  const earningsTimeoutsRef = useRef<number[]>([]);
+  const earningsImmediateKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     const fetchFundamentals = async () => {
@@ -27,6 +28,66 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
       try {
         const rec = await getFundamentals(symbol, 'current');
         setFundamentals(rec || null);
+        const earningsStr = rec?.metrics?.earnings_date ? String(rec.metrics.earnings_date) : null;
+        earningsTimeoutsRef.current.forEach(id => window.clearTimeout(id));
+        earningsTimeoutsRef.current = [];
+        if (earningsStr) {
+          const monthMap: Record<string, number> = {
+            Jan: 0,
+            Feb: 1,
+            Mar: 2,
+            Apr: 3,
+            May: 4,
+            Jun: 5,
+            Jul: 6,
+            Aug: 7,
+            Sep: 8,
+            Oct: 9,
+            Nov: 10,
+            Dec: 11
+          };
+
+          const parts = earningsStr.trim().split(/\s+/);
+          const month = monthMap[parts[0]];
+          const day = parts[1] ? parseInt(parts[1], 10) : Number.NaN;
+          const session = parts[2] ? parts[2].toUpperCase() : '';
+
+          const now = new Date();
+          const baseHour = session === 'BMO' ? 9 : session === 'AMC' ? 17 : 12;
+          const baseMinute = session === 'BMO' ? 45 : session === 'AMC' ? 15 : 0;
+
+          if (Number.isInteger(month) && Number.isFinite(day)) {
+            const candidateYear = now.getFullYear();
+            let runAt = new Date(candidateYear, month, day, baseHour, baseMinute, 0, 0);
+            if (runAt.getTime() < now.getTime() - 12 * 60 * 60 * 1000) {
+              runAt = new Date(candidateYear + 1, month, day, baseHour, baseMinute, 0, 0);
+            }
+
+            if (runAt.getFullYear() === now.getFullYear() && runAt.getMonth() === now.getMonth() && runAt.getDate() === now.getDate()) {
+              const key = `${symbol}-${runAt.getFullYear()}-${runAt.getMonth()}-${runAt.getDate()}`;
+              if (earningsImmediateKeyRef.current !== key) {
+                earningsImmediateKeyRef.current = key;
+                const id = window.setTimeout(() => {
+                  fetchFundamentals();
+                }, 0);
+                earningsTimeoutsRef.current.push(id);
+              }
+            }
+
+            const scheduleFetchAt = (d: Date) => {
+              const ms = d.getTime() - Date.now();
+              if (ms <= 0) return;
+              const id = window.setTimeout(() => {
+                fetchFundamentals();
+              }, ms);
+              earningsTimeoutsRef.current.push(id);
+            };
+
+            scheduleFetchAt(runAt);
+            const nextDay = new Date(runAt.getFullYear(), runAt.getMonth(), runAt.getDate() + 1, 9, 45, 0, 0);
+            scheduleFetchAt(nextDay);
+          }
+        }
       } catch (err) {
         console.error('Failed to fetch fundamentals:', err);
         setFundamentals(null);
@@ -37,20 +98,18 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
 
     fetchFundamentals();
     const interval = window.setInterval(fetchFundamentals, 24 * 60 * 60 * 1000);
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearInterval(interval);
+      earningsTimeoutsRef.current.forEach(id => window.clearTimeout(id));
+      earningsTimeoutsRef.current = [];
+      earningsImmediateKeyRef.current = null;
+    };
   }, [symbol]);
 
   const parseYear = (dateStr: string | undefined) => {
     if (!dateStr) return null;
     const d = new Date(dateStr);
     return Number.isFinite(d.getTime()) ? d.getFullYear() : null;
-  };
-
-  const quarterOfDate = (dateStr: string | undefined) => {
-    if (!dateStr) return null;
-    const d = new Date(dateStr);
-    if (!Number.isFinite(d.getTime())) return null;
-    return (Math.floor(d.getMonth() / 3) + 1) as 1 | 2 | 3 | 4;
   };
 
   const latestAnnualYear = (annual: any[] | undefined) => {
@@ -67,21 +126,103 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
     return best ? parseYear(best.date) : null;
   };
 
-  const collectYears = (annual: any[] | undefined, quarterly: any[] | undefined) => {
+  const latestAnnualEndMonth = (annual: any[] | undefined) => {
+    if (!annual || annual.length === 0) return null;
+    let best: any | null = null;
+    let bestTime = -Infinity;
+    for (const p of annual) {
+      const t = p?.date ? new Date(p.date).getTime() : NaN;
+      if (Number.isFinite(t) && t > bestTime) {
+        best = p;
+        bestTime = t;
+      }
+    }
+    if (!best?.date) return null;
+    const d = new Date(best.date);
+    if (!Number.isFinite(d.getTime())) return null;
+    return d.getMonth() + 1;
+  };
+
+  const fiscalYearOfDate = (dateStr: string | undefined, fiscalYearEndMonth: number) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (!Number.isFinite(d.getTime())) return null;
+    const month = d.getMonth() + 1;
+    const year = d.getFullYear();
+    return month > fiscalYearEndMonth ? year + 1 : year;
+  };
+
+  const fiscalQuarterOfDate = (dateStr: string | undefined, fiscalYearEndMonth: number) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (!Number.isFinite(d.getTime())) return null;
+    const month = d.getMonth() + 1;
+    const fiscalYearStartMonth = (fiscalYearEndMonth % 12) + 1;
+    const offset = (month - fiscalYearStartMonth + 12) % 12;
+    return (Math.floor(offset / 3) + 1) as 1 | 2 | 3 | 4;
+  };
+
+  const currentFiscalYear = (fiscalYearEndMonth: number) => {
+    const d = new Date();
+    const month = d.getMonth() + 1;
+    const year = d.getFullYear();
+    return month > fiscalYearEndMonth ? year + 1 : year;
+  };
+
+  const currentFiscalQuarter = (fiscalYearEndMonth: number) => {
+    const d = new Date();
+    const month = d.getMonth() + 1;
+    const fiscalYearStartMonth = (fiscalYearEndMonth % 12) + 1;
+    const offset = (month - fiscalYearStartMonth + 12) % 12;
+    return (Math.floor(offset / 3) + 1) as 1 | 2 | 3 | 4;
+  };
+
+  const defaultQuarterSelection = (annual: any[] | undefined, quarterly: any[] | undefined): Selection => {
+    const fyEnd = latestAnnualEndMonth(annual) ?? 12;
+    const curFY = currentFiscalYear(fyEnd);
+    const curFQ = currentFiscalQuarter(fyEnd);
+    const prevYear = curFQ > 1 ? curFY : curFY - 1;
+    const prevQuarter = (curFQ > 1 ? (curFQ - 1) : 4) as 1 | 2 | 3 | 4;
+
+    if (quarterly && quarterly.length > 0) {
+      const hasPrev = quarterly.some(p => fiscalYearOfDate(p?.date, fyEnd) === prevYear && fiscalQuarterOfDate(p?.date, fyEnd) === prevQuarter);
+      if (hasPrev) return { mode: 'quarterly', year: prevYear, quarter: prevQuarter };
+
+      let bestYear: number | null = null;
+      let bestQuarter: 1 | 2 | 3 | 4 | null = null;
+      let bestIdx = -Infinity;
+      for (const p of quarterly) {
+        const y = fiscalYearOfDate(p?.date, fyEnd);
+        const q = fiscalQuarterOfDate(p?.date, fyEnd);
+        if (!y || !q) continue;
+        const idx = y * 4 + q;
+        if (idx > bestIdx) {
+          bestIdx = idx;
+          bestYear = y;
+          bestQuarter = q;
+        }
+      }
+      if (bestYear && bestQuarter) return { mode: 'quarterly', year: bestYear, quarter: bestQuarter };
+    }
+
+    return { mode: 'annual', year: latestAnnualYear(annual) };
+  };
+
+  const collectYears = (annual: any[] | undefined, quarterly: any[] | undefined, fiscalYearEndMonth: number) => {
     const setYears = new Set<number>();
     (annual || []).forEach((p: any) => {
       const y = parseYear(p?.date);
       if (y) setYears.add(y);
     });
     (quarterly || []).forEach((p: any) => {
-      const y = parseYear(p?.date);
+      const y = fiscalYearOfDate(p?.date, fiscalYearEndMonth);
       if (y) setYears.add(y);
     });
-    setYears.add(nowYear);
+    setYears.add(currentFiscalYear(fiscalYearEndMonth));
     return Array.from(setYears).sort((a, b) => b - a);
   };
 
-  const availableQuarters = (quarterly: any[] | undefined, year: number | null) => {
+  const availableQuarters = (quarterly: any[] | undefined, year: number | null, fiscalYearEndMonth: number) => {
     const quarters: Array<{ label: string; value: 1 | 2 | 3 | 4; disabled?: boolean }> = [
       { label: 'Q1', value: 1 },
       { label: 'Q2', value: 2 },
@@ -92,8 +233,8 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
 
     const avail = new Set<number>();
     (quarterly || []).forEach((p: any) => {
-      const y = parseYear(p?.date);
-      const q = quarterOfDate(p?.date);
+      const y = fiscalYearOfDate(p?.date, fiscalYearEndMonth);
+      const q = fiscalQuarterOfDate(p?.date, fiscalYearEndMonth);
       if (y && q && y === year) avail.add(q);
     });
     if (avail.size === 0) return quarters;
@@ -103,13 +244,13 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
   useEffect(() => {
     if (!fundamentals) return;
     if (!incomeSel) {
-      setIncomeSel({ mode: 'annual', year: latestAnnualYear(fundamentals.financials_annual) });
+      setIncomeSel(defaultQuarterSelection(fundamentals.financials_annual, fundamentals.financials_quarterly));
     }
     if (!balanceSel) {
-      setBalanceSel({ mode: 'annual', year: latestAnnualYear(fundamentals.balance_sheet_annual) });
+      setBalanceSel(defaultQuarterSelection(fundamentals.balance_sheet_annual, fundamentals.balance_sheet_quarterly));
     }
     if (!cashSel) {
-      setCashSel({ mode: 'annual', year: latestAnnualYear(fundamentals.cashflow_annual) });
+      setCashSel(defaultQuarterSelection(fundamentals.cashflow_annual, fundamentals.cashflow_quarterly));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fundamentals]);
@@ -131,6 +272,12 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
   };
 
   const metrics = fundamentals?.metrics || {};
+  const incomeFiscalYearEndMonth = latestAnnualEndMonth(fundamentals?.financials_annual) ?? 12;
+  const balanceFiscalYearEndMonth = latestAnnualEndMonth(fundamentals?.balance_sheet_annual) ?? 12;
+  const cashFiscalYearEndMonth = latestAnnualEndMonth(fundamentals?.cashflow_annual) ?? 12;
+  const incomeCurrentFY = currentFiscalYear(incomeFiscalYearEndMonth);
+  const balanceCurrentFY = currentFiscalYear(balanceFiscalYearEndMonth);
+  const cashCurrentFY = currentFiscalYear(cashFiscalYearEndMonth);
 
   // Helper to infer formatting for dynamic keys
   const inferFormat = (key: string, value: any): 'currency' | 'percent' | 'number' | 'string' => {
@@ -149,17 +296,13 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
   ) => {
     if ((!annualData || annualData.length === 0) && (!quarterlyData || quarterlyData.length === 0)) return <div style={centerStyle}>No {title} data available</div>;
 
-    // Helper to format quarters (e.g. 2023-09-30 -> Q3 2023)
+    const fiscalYearEndMonth = latestAnnualEndMonth(annualData) ?? 12;
+    const earningsDate = metrics?.earnings_date ? String(metrics.earnings_date) : null;
+
     const formatQuarter = (dateStr: string) => {
-      try {
-        const d = new Date(dateStr);
-        const month = d.getMonth() + 1;
-        const year = d.getFullYear();
-        const quarter = Math.ceil(month / 3);
-        return `Q${quarter} ${year}`;
-      } catch {
-        return dateStr;
-      }
+      const y = fiscalYearOfDate(dateStr, fiscalYearEndMonth);
+      const q = fiscalQuarterOfDate(dateStr, fiscalYearEndMonth);
+      return y && q ? `Q${q} ${y}` : dateStr;
     };
 
     const pickLatestPeriod = (data: any[] | undefined) => {
@@ -218,14 +361,25 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
     const latestAnnual = pickLatestPeriod(annualData);
     const latestQuarterly = pickLatestPeriod(quarterlyData);
 
+    const fiscalIndexFromDate = (dateStr: string | undefined) => {
+      const y = fiscalYearOfDate(dateStr, fiscalYearEndMonth);
+      const q = fiscalQuarterOfDate(dateStr, fiscalYearEndMonth);
+      return y && q ? y * 4 + q : null;
+    };
+
     let periodToShow: any = null;
     let isQuarter = false;
     if (selected?.mode === 'quarterly') {
       const yr = selected.year;
       const q = selected.quarter;
       if (yr && q && quarterlyData && quarterlyData.length > 0) {
-        const match = quarterlyData.find(p => parseYear(p.date) === yr && quarterOfDate(p.date) === q);
-        if (!match) return <div style={centerStyle}>No {title} data for Q{q} {yr}</div>;
+        const match = quarterlyData.find(p => fiscalYearOfDate(p?.date, fiscalYearEndMonth) === yr && fiscalQuarterOfDate(p?.date, fiscalYearEndMonth) === q);
+        if (!match) {
+          const latestIdx = latestQuarterly?.date ? fiscalIndexFromDate(latestQuarterly.date) : null;
+          const selectedIdx = yr * 4 + q;
+          const extra = earningsDate && latestIdx && selectedIdx > latestIdx ? ` (Next earnings: ${earningsDate})` : '';
+          return <div style={centerStyle}>No {title} data for Q{q} {yr}{extra}</div>;
+        }
         periodToShow = match;
         isQuarter = true;
       } else {
@@ -236,7 +390,11 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
       const yr = selected?.year;
       if (yr && annualData && annualData.length > 0) {
         const match = annualData.find(p => parseYear(p.date) === yr);
-        if (!match) return <div style={centerStyle}>No {title} data for {yr}</div>;
+        if (!match) {
+          const latestY = latestAnnual?.date ? parseYear(latestAnnual.date) : null;
+          const extra = earningsDate && latestY && yr > latestY ? ` (Next earnings: ${earningsDate})` : '';
+          return <div style={centerStyle}>No {title} data for {yr}{extra}</div>;
+        }
         periodToShow = match;
       } else {
         periodToShow = latestAnnual;
@@ -626,7 +784,7 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
                         const base = prev ?? { mode: 'annual', year: null, quarter: 1 };
                         let nextQuarter = base.quarter ?? 1;
                         if (base.mode === 'quarterly') {
-                          const opts = availableQuarters(fundamentals?.financials_quarterly, nextYear);
+                          const opts = availableQuarters(fundamentals?.financials_quarterly, nextYear, incomeFiscalYearEndMonth);
                           const selectedOpt = opts.find(o => o.value === nextQuarter);
                           if (selectedOpt?.disabled) {
                             nextQuarter = opts.find(o => !o.disabled)?.value ?? 1;
@@ -638,9 +796,9 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
                     style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
                   >
                     <option value="">Select year</option>
-                    {collectYears(fundamentals?.financials_annual, fundamentals?.financials_quarterly).map(y => (
+                    {collectYears(fundamentals?.financials_annual, fundamentals?.financials_quarterly, incomeFiscalYearEndMonth).map(y => (
                       <option key={y} value={y}>
-                        {y === nowYear ? `Current (${y})` : y}
+                        {y === incomeCurrentFY ? `Current (${y})` : y}
                       </option>
                     ))}
                   </select>
@@ -653,7 +811,7 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
                     onChange={e => setIncomeDraft(prev => ({ ...(prev ?? { mode: 'quarterly', year: latestAnnualYear(fundamentals?.financials_annual), quarter: 1 }), quarter: parseInt(e.target.value, 10) as 1 | 2 | 3 | 4 }))}
                     style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
                   >
-                    {availableQuarters(fundamentals?.financials_quarterly, incomeDraft?.year ?? null).map(q => (
+                    {availableQuarters(fundamentals?.financials_quarterly, incomeDraft?.year ?? null, incomeFiscalYearEndMonth).map(q => (
                       <option key={q.value} value={q.value} disabled={q.disabled}>
                         {q.label}
                       </option>
@@ -759,7 +917,7 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
                         const base = prev ?? { mode: 'annual', year: null, quarter: 1 };
                         let nextQuarter = base.quarter ?? 1;
                         if (base.mode === 'quarterly') {
-                          const opts = availableQuarters(fundamentals?.balance_sheet_quarterly, nextYear);
+                          const opts = availableQuarters(fundamentals?.balance_sheet_quarterly, nextYear, balanceFiscalYearEndMonth);
                           const selectedOpt = opts.find(o => o.value === nextQuarter);
                           if (selectedOpt?.disabled) {
                             nextQuarter = opts.find(o => !o.disabled)?.value ?? 1;
@@ -771,9 +929,9 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
                     style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
                   >
                     <option value="">Select year</option>
-                    {collectYears(fundamentals?.balance_sheet_annual, fundamentals?.balance_sheet_quarterly).map(y => (
+                    {collectYears(fundamentals?.balance_sheet_annual, fundamentals?.balance_sheet_quarterly, balanceFiscalYearEndMonth).map(y => (
                       <option key={y} value={y}>
-                        {y === nowYear ? `Current (${y})` : y}
+                        {y === balanceCurrentFY ? `Current (${y})` : y}
                       </option>
                     ))}
                   </select>
@@ -786,7 +944,7 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
                     onChange={e => setBalanceDraft(prev => ({ ...(prev ?? { mode: 'quarterly', year: latestAnnualYear(fundamentals?.balance_sheet_annual), quarter: 1 }), quarter: parseInt(e.target.value, 10) as 1 | 2 | 3 | 4 }))}
                     style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
                   >
-                    {availableQuarters(fundamentals?.balance_sheet_quarterly, balanceDraft?.year ?? null).map(q => (
+                    {availableQuarters(fundamentals?.balance_sheet_quarterly, balanceDraft?.year ?? null, balanceFiscalYearEndMonth).map(q => (
                       <option key={q.value} value={q.value} disabled={q.disabled}>
                         {q.label}
                       </option>
@@ -892,7 +1050,7 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
                         const base = prev ?? { mode: 'annual', year: null, quarter: 1 };
                         let nextQuarter = base.quarter ?? 1;
                         if (base.mode === 'quarterly') {
-                          const opts = availableQuarters(fundamentals?.cashflow_quarterly, nextYear);
+                          const opts = availableQuarters(fundamentals?.cashflow_quarterly, nextYear, cashFiscalYearEndMonth);
                           const selectedOpt = opts.find(o => o.value === nextQuarter);
                           if (selectedOpt?.disabled) {
                             nextQuarter = opts.find(o => !o.disabled)?.value ?? 1;
@@ -904,9 +1062,9 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
                     style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
                   >
                     <option value="">Select year</option>
-                    {collectYears(fundamentals?.cashflow_annual, fundamentals?.cashflow_quarterly).map(y => (
+                    {collectYears(fundamentals?.cashflow_annual, fundamentals?.cashflow_quarterly, cashFiscalYearEndMonth).map(y => (
                       <option key={y} value={y}>
-                        {y === nowYear ? `Current (${y})` : y}
+                        {y === cashCurrentFY ? `Current (${y})` : y}
                       </option>
                     ))}
                   </select>
@@ -919,7 +1077,7 @@ const FinancialFundamentals: React.FC<FinancialFundamentalsProps> = ({ symbol })
                     onChange={e => setCashDraft(prev => ({ ...(prev ?? { mode: 'quarterly', year: latestAnnualYear(fundamentals?.cashflow_annual), quarter: 1 }), quarter: parseInt(e.target.value, 10) as 1 | 2 | 3 | 4 }))}
                     style={{ width: '100%', padding: 8, background: '#0b0f17', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 6 }}
                   >
-                    {availableQuarters(fundamentals?.cashflow_quarterly, cashDraft?.year ?? null).map(q => (
+                    {availableQuarters(fundamentals?.cashflow_quarterly, cashDraft?.year ?? null, cashFiscalYearEndMonth).map(q => (
                       <option key={q.value} value={q.value} disabled={q.disabled}>
                         {q.label}
                       </option>

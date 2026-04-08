@@ -41,6 +41,9 @@ const Navbar: React.FC = () => {
         <li>
           <Link to="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>Dashboard</Link>
         </li>
+        <li>
+          <Link to="/scope-monitor" style={{ color: '#fff', textDecoration: 'none', fontWeight: 500 }}>Scope Monitor</Link>
+        </li>
         {!token ? (
           <>
             <li>

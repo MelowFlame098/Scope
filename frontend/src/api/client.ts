@@ -146,6 +146,28 @@ export const getSectorPerformance = async (): Promise<SectorPerformance[]> => {
   return response.data || [];
 };
 
+export interface MonitorFeedItem {
+  id: string;
+  kind: 'news' | 'market' | 'event' | 'system' | string;
+  title: string;
+  summary: string;
+  source: string;
+  url?: string;
+  region?: string;
+  category?: string;
+  published_at: string;
+}
+
+export interface MonitorFeedResponse {
+  generated_at: string;
+  items: MonitorFeedItem[];
+}
+
+export const getScopeMonitorFeed = async (stream: string = 'news', limit: number = 20): Promise<MonitorFeedResponse> => {
+  const response = await client.get(`/monitor/feed`, { params: { stream, limit } });
+  return response.data as MonitorFeedResponse;
+};
+
 // Auth API
 export const login = async (credentials: any) => {
   const response = await client.post('/auth/login', credentials);

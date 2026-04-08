@@ -101,8 +101,8 @@ class AIService:
         # Sector every 15 mins
         schedule.every(15).minutes.do(self.sector.fetch_sector_performance)
         
-        # Fundamentals every 1 day
-        schedule.every(1).days.do(self.run_fundamentals_dynamic)
+        # Fundamentals every 12 hours (ensures updates land on/after earnings days)
+        schedule.every(12).hours.do(self.run_fundamentals_dynamic)
         
         while True:
             schedule.run_pending()
