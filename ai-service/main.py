@@ -1,11 +1,13 @@
 import time
 import schedule
 from pymongo import MongoClient
+from datetime import datetime
 from app.screener import ScreenerModule
 from app.insider import InsiderModule
 from app.sector import SectorModule
 from app.news import NewsModule
 from app.fundamentals import run_fundamentals_batch
+from app.osint import OSINTModule
 
 import os
 
@@ -25,6 +27,7 @@ class AIService:
             self.insider = InsiderModule(self.db)
             self.sector = SectorModule(self.db)
             self.news = NewsModule(self.db)
+            self.osint = OSINTModule(self.db)
             # Expanded ticker list to match chart/screener/movers/ETFs
             self.fundamentals_tickers = [
                 # Tech / Blue Chips
@@ -61,6 +64,36 @@ class AIService:
             self.news.fetch_all_news()
         except Exception as e:
             print(f"Error running news: {e}")
+
+        try:
+            self.osint.fetch_usgs_earthquakes()
+        except Exception as e:
+            print(f"Error running osint usgs: {e}")
+
+        try:
+            self.osint.fetch_nasa_eonet()
+        except Exception as e:
+            print(f"Error running osint eonet: {e}")
+
+        try:
+            self.osint.fetch_urlhaus_recent()
+        except Exception as e:
+            print(f"Error running osint urlhaus: {e}")
+
+        try:
+            self.osint.fetch_coingecko_prices()
+        except Exception as e:
+            print(f"Error running osint coingecko: {e}")
+
+        try:
+            self.osint.fetch_gdelt()
+        except Exception as e:
+            print(f"Error running osint gdelt: {e}")
+        
+        try:
+            self.osint.fetch_opensky_states()
+        except Exception as e:
+            print(f"Error running osint opensky: {e}")
         
         # Dynamic Ticker Expansion: Get tickers from Screener Results in DB
         try:
@@ -103,6 +136,13 @@ class AIService:
         
         # Fundamentals every 12 hours (ensures updates land on/after earnings days)
         schedule.every(12).hours.do(self.run_fundamentals_dynamic)
+
+        schedule.every(5).minutes.do(self.osint.fetch_usgs_earthquakes)
+        schedule.every(15).minutes.do(self.osint.fetch_nasa_eonet)
+        schedule.every(15).minutes.do(self.osint.fetch_urlhaus_recent)
+        schedule.every(2).minutes.do(self.osint.fetch_coingecko_prices)
+        schedule.every(20).minutes.do(self.osint.fetch_gdelt)
+        schedule.every(5).minutes.do(self.osint.fetch_opensky_states)
         
         while True:
             schedule.run_pending()

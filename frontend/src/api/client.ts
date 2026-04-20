@@ -156,6 +156,9 @@ export interface MonitorFeedItem {
   region?: string;
   category?: string;
   published_at: string;
+  severity?: number;
+  relevance?: number;
+  geo?: { lon: number; lat: number } | null;
 }
 
 export interface MonitorFeedResponse {
@@ -163,8 +166,12 @@ export interface MonitorFeedResponse {
   items: MonitorFeedItem[];
 }
 
-export const getScopeMonitorFeed = async (stream: string = 'news', limit: number = 20): Promise<MonitorFeedResponse> => {
-  const response = await client.get(`/monitor/feed`, { params: { stream, limit } });
+export const getScopeMonitorFeed = async (
+  stream: string = 'news',
+  limit: number = 20,
+  after?: string,
+): Promise<MonitorFeedResponse> => {
+  const response = await client.get(`/monitor/feed`, { params: { stream, limit, after } });
   return response.data as MonitorFeedResponse;
 };
 

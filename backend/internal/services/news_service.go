@@ -19,6 +19,7 @@ type NewsArticle struct {
 	Timestamp time.Time          `bson:"timestamp" json:"timestamp"`
 	Sentiment float64            `bson:"sentiment" json:"sentiment"`
 	Tags      []string           `bson:"tags" json:"tags"`
+	Relevance int                `bson:"relevance,omitempty" json:"relevance,omitempty"`
 }
 
 type NewsService struct {
@@ -40,6 +41,22 @@ func (s *NewsService) CreateArticle(ctx context.Context, article *NewsArticle) e
 func (s *NewsService) GetLatestNews(ctx context.Context, limit int64) ([]NewsArticle, error) {
 	opts := options.Find().SetSort(bson.D{{Key: "timestamp", Value: -1}}).SetLimit(limit)
 	cursor, err := s.collection.Find(ctx, bson.M{}, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	articles := []NewsArticle{}
+	if err := cursor.All(ctx, &articles); err != nil {
+		return nil, err
+	}
+	return articles, nil
+}
+
+func (s *NewsService) GetLatestNewsAfter(ctx context.Context, limit int64, after time.Time) ([]NewsArticle, error) {
+	filter := bson.M{"timestamp": bson.M{"$gte": after}}
+	opts := options.Find().SetSort(bson.D{{Key: "timestamp", Value: -1}}).SetLimit(limit)
+	cursor, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}

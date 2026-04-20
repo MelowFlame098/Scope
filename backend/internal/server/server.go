@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"scope-backend/internal/config"
 	"scope-backend/internal/services"
@@ -12,7 +13,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"gorm.io/gorm"
 )
 
@@ -126,8 +130,15 @@ func (s *Server) handleGetMonitorFeed(c *gin.Context) {
 	stream := c.DefaultQuery("stream", "news")
 	limitStr := c.DefaultQuery("limit", "20")
 	limit, err := strconv.ParseInt(limitStr, 10, 64)
-	if err != nil || limit <= 0 || limit > 100 {
+	if err != nil || limit <= 0 || limit > 5000 {
 		limit = 20
+	}
+	afterStr := c.Query("after")
+	var after time.Time
+	if afterStr != "" {
+		if t, err := time.Parse(time.RFC3339, afterStr); err == nil {
+			after = t.UTC()
+		}
 	}
 
 	compact := func(s string) string {
@@ -146,31 +157,313 @@ func (s *Server) handleGetMonitorFeed(c *gin.Context) {
 	}
 
 	if s.newsService != nil && stream == "news" {
-		articles, err := s.newsService.GetLatestNews(c.Request.Context(), limit)
+		baseLimit := limit * 15
+		if baseLimit > 5000 {
+			baseLimit = 5000
+		}
+		if baseLimit < limit {
+			baseLimit = limit
+		}
+
+		var articles []services.NewsArticle
+		var err error
+		if !after.IsZero() {
+			articles, err = s.newsService.GetLatestNewsAfter(c.Request.Context(), baseLimit, after)
+		} else {
+			articles, err = s.newsService.GetLatestNews(c.Request.Context(), baseLimit)
+		}
 		if err == nil && len(articles) > 0 {
-			items := make([]gin.H, 0, len(articles))
-			for _, a := range articles {
-				category := ""
-				if len(a.Tags) > 0 {
-					category = a.Tags[0]
+			isBroadCategory := func(s string) bool {
+				switch strings.ToLower(s) {
+				case "technology", "finance", "crypto", "macro", "geopolitics", "natural resources", "general":
+					return true
+				default:
+					return false
 				}
+			}
+
+			categoryFor := func(a services.NewsArticle) string {
+				if strings.EqualFold(a.Source, "Finviz Aggregated") {
+					for _, t := range a.Tags {
+						if isBroadCategory(t) && !strings.EqualFold(t, "general") {
+							return t
+						}
+					}
+					return "Markets"
+				}
+				for _, t := range a.Tags {
+					if isBroadCategory(t) {
+						return t
+					}
+				}
+				if len(a.Tags) > 0 {
+					return a.Tags[0]
+				}
+				return ""
+			}
+
+			capFinviz := limit / 3
+			if capFinviz < 10 {
+				capFinviz = 10
+			}
+			if capFinviz > 120 {
+				capFinviz = 120
+			}
+			capOther := limit / 4
+			if capOther < 6 {
+				capOther = 6
+			}
+			if capOther > 60 {
+				capOther = 60
+			}
+
+			items := make([]gin.H, 0, limit)
+			seen := make(map[string]struct{}, len(articles))
+			counts := make(map[string]int, 16)
+			appendItem := func(a services.NewsArticle) {
+				id := a.ID.Hex()
+				if _, ok := seen[id]; ok {
+					return
+				}
+				seen[id] = struct{}{}
 				items = append(items, gin.H{
-					"id":           a.ID.Hex(),
+					"id":           id,
 					"kind":         "news",
 					"title":        truncate(a.Title, 140),
 					"summary":      truncate(a.Content, 280),
 					"source":       a.Source,
 					"url":          a.URL,
 					"region":       "Global",
-					"category":     category,
+					"category":     categoryFor(a),
 					"published_at": a.Timestamp.UTC().Format(time.RFC3339),
+					"relevance":    a.Relevance,
 				})
 			}
+
+			for _, a := range articles {
+				src := a.Source
+				cap := capOther
+				if strings.EqualFold(src, "Finviz Aggregated") {
+					cap = capFinviz
+				}
+				if counts[src] >= int(cap) {
+					continue
+				}
+				counts[src]++
+				appendItem(a)
+				if int64(len(items)) >= limit {
+					break
+				}
+			}
+			if int64(len(items)) < limit {
+				for _, a := range articles {
+					appendItem(a)
+					if int64(len(items)) >= limit {
+						break
+					}
+				}
+			}
+
 			c.JSON(200, gin.H{
 				"generated_at": now.Format(time.RFC3339),
 				"items":        items,
 			})
 			return
+		}
+	}
+
+	if s.mongoDB != nil && stream != "news" {
+		filter := bson.M{}
+		switch stream {
+		case "events":
+			filter["kind"] = bson.M{"$in": []string{"earthquake", "disaster", "gdelt", "cyber", "aviation"}}
+		case "cyber":
+			filter["kind"] = bson.M{"$in": []string{"cyber"}}
+		case "markets":
+			filter["kind"] = bson.M{"$in": []string{"crypto"}}
+		case "watchlist":
+			// no kind filter; return all OSINT event types
+		default:
+			filter["kind"] = stream
+		}
+		if !after.IsZero() {
+			filter["published_at"] = bson.M{"$gte": after}
+		}
+
+		opts := options.Find().SetSort(bson.D{{Key: "published_at", Value: -1}}).SetLimit(limit)
+		cursor, err := s.mongoDB.Collection("osint_events").Find(c.Request.Context(), filter, opts)
+		if err == nil {
+			var docs []bson.M
+			if err := cursor.All(c.Request.Context(), &docs); err == nil && len(docs) > 0 {
+				getString := func(m bson.M, key string) string {
+					v, ok := m[key]
+					if !ok || v == nil {
+						return ""
+					}
+					switch t := v.(type) {
+					case string:
+						return t
+					default:
+						return fmt.Sprint(t)
+					}
+				}
+				getTime := func(m bson.M, key string) string {
+					v, ok := m[key]
+					if !ok || v == nil {
+						return ""
+					}
+					switch t := v.(type) {
+					case time.Time:
+						return t.UTC().Format(time.RFC3339)
+					case primitive.DateTime:
+						return t.Time().UTC().Format(time.RFC3339)
+					default:
+						return ""
+					}
+				}
+
+				getFloat := func(v any) (float64, bool) {
+					switch t := v.(type) {
+					case float64:
+						return t, true
+					case float32:
+						return float64(t), true
+					case int64:
+						return float64(t), true
+					case int32:
+						return float64(t), true
+					case int:
+						return float64(t), true
+					default:
+						return 0, false
+					}
+				}
+
+				getNestedMetric := func(m bson.M, key string) (float64, bool) {
+					v, ok := m["metrics"]
+					if !ok || v == nil {
+						return 0, false
+					}
+					switch mt := v.(type) {
+					case primitive.M:
+						return getFloat(mt[key])
+					default:
+						return 0, false
+					}
+				}
+
+				getGeo := func(m bson.M) (float64, float64, bool) {
+					v, ok := m["geo"]
+					if !ok || v == nil {
+						return 0, 0, false
+					}
+					var gm primitive.M
+					switch t := v.(type) {
+					case primitive.M:
+						gm = t
+					default:
+						return 0, 0, false
+					}
+					coordsRaw, ok := gm["coordinates"]
+					if !ok || coordsRaw == nil {
+						return 0, 0, false
+					}
+					switch coords := coordsRaw.(type) {
+					case primitive.A:
+						if len(coords) != 2 {
+							return 0, 0, false
+						}
+						lon, ok1 := getFloat(coords[0])
+						lat, ok2 := getFloat(coords[1])
+						if !ok1 || !ok2 {
+							return 0, 0, false
+						}
+						return lon, lat, true
+					case []interface{}:
+						if len(coords) != 2 {
+							return 0, 0, false
+						}
+						lon, ok1 := getFloat(coords[0])
+						lat, ok2 := getFloat(coords[1])
+						if !ok1 || !ok2 {
+							return 0, 0, false
+						}
+						return lon, lat, true
+					default:
+						return 0, 0, false
+					}
+				}
+
+				items := make([]gin.H, 0, len(docs))
+				for _, d := range docs {
+					id := getString(d, "source_id")
+					if id == "" {
+						if oid, ok := d["_id"].(primitive.ObjectID); ok {
+							id = oid.Hex()
+						}
+					}
+
+					kind := getString(d, "kind")
+					severity := 0.0
+					switch kind {
+					case "earthquake":
+						if v, ok := getNestedMetric(d, "magnitude"); ok {
+							severity = v
+						}
+					case "crypto":
+						if v, ok := getNestedMetric(d, "usd_24h_change"); ok {
+							if v < 0 {
+								severity = -v
+							} else {
+								severity = v
+							}
+						}
+					case "aviation":
+						if v, ok := getNestedMetric(d, "velocity"); ok {
+							if v < 0 {
+								v = 0
+							}
+							if v > 1000 {
+								v = 1000
+							}
+							severity = v / 150.0
+						} else {
+							severity = 3.0
+						}
+					case "cyber":
+						severity = 6.0
+					case "disaster":
+						severity = 5.0
+					case "gdelt":
+						severity = 4.0
+					}
+
+					var geo any = nil
+					if lon, lat, ok := getGeo(d); ok {
+						geo = gin.H{"lon": lon, "lat": lat}
+					}
+
+					items = append(items, gin.H{
+						"id":           id,
+						"kind":         kind,
+						"title":        truncate(getString(d, "title"), 140),
+						"summary":      truncate(getString(d, "summary"), 280),
+						"source":       getString(d, "source"),
+						"url":          getString(d, "url"),
+						"region":       getString(d, "region"),
+						"category":     getString(d, "category"),
+						"published_at": getTime(d, "published_at"),
+						"severity":     severity,
+						"geo":          geo,
+					})
+				}
+
+				c.JSON(200, gin.H{
+					"generated_at": now.Format(time.RFC3339),
+					"items":        items,
+				})
+				return
+			}
 		}
 	}
 
